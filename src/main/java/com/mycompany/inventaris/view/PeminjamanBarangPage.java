@@ -1,5 +1,8 @@
 package com.mycompany.inventaris.view;
 
+import com.mycompany.inventaris.dao.PermintaanDAO;
+import com.mycompany.inventaris.model.Permintaan;
+import java.util.Date;
 import com.mycompany.inventaris.dao.BarangDAO;
 import com.mycompany.inventaris.model.Barang;
 import com.mycompany.inventaris.model.User;
@@ -25,9 +28,11 @@ public class PeminjamanBarangPage extends BorderPane {
     private List<Barang> allData;
     private List<BarangRow> selectedItems = new ArrayList<>();
     private User user;
+    private PermintaanDAO permintaanDAO;
 
     public PeminjamanBarangPage(User user) {
         allData = BarangDAO.getAll();
+        permintaanDAO = new PermintaanDAO();
         this.user = user;
         loadStylesheet();
         initializeUI();
@@ -105,7 +110,7 @@ public class PeminjamanBarangPage extends BorderPane {
         stokCol.setMinWidth(100);
         stokCol.setMaxWidth(120);
         stokCol.setCellValueFactory(data -> 
-            new SimpleStringProperty(data.getValue().barang.getStok()));
+            new SimpleStringProperty(data.getValue().barang.getStok() + "pcs"));
 
         TableColumn<BarangRow, Void> actionCol = new TableColumn<>("Aksi");
         actionCol.setMinWidth(180);
@@ -436,15 +441,59 @@ public class PeminjamanBarangPage extends BorderPane {
             "-fx-font-family: 'Poppins';"
         ));
         submitBtn.setOnAction(e -> {
-            if (namaPeminjam.getText().isEmpty() || lokasiPengambilan.getText().isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setContentText("Semua field harus diisi!");
-                alert.showAndWait();
-            } else {
-                popup.close();
-                showSuccessPopup();
+    if (namaPeminjam.getText().isEmpty() || lokasiPengambilan.getText().isEmpty()) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setContentText("Semua field harus diisi!");
+        alert.showAndWait();
+        return;
+    }
+
+    try {
+        for (BarangRow row : selectedItems) {
+            if (row.quantity > 0) {
+                String kategori = row.barang.getKategori(); // ambil kategori
+                Date now = new Date();
+
+                if (kategori.equalsIgnoreCase("Consumable")) {
+                    // Simpan ke table permintaan
+                    Permintaan p = new Permintaan();
+                    p.setIdUser(user.getIdUser());
+                    p.setIdBarang(row.barang.getIdBarang());
+                    p.setJumlah(row.quantity);
+                    p.setTanggal(now);
+                    p.setStatus("Pending");
+
+                    boolean sukses = permintaanDAO.insert(p);
+                    if (!sukses) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR,
+                            "Gagal menyimpan permintaan untuk " + row.barang.getNama());
+                        alert.showAndWait();
+                        return;
+                    }
+
+                } else {
+                   
+                }
             }
-        });
+        }
+        
+        for (BarangRow row : selectedItems) {
+        if (row.quantity > 0) {
+            if (row.barang.getKategori().equals("Consumable")) {
+                permintaanDAO.insert(new Permintaan(user.getIdUser(), row.barang.getIdBarang(), row.quantity, new Date(), "Diproses"));
+            } 
+            BarangDAO.reduceStok(row.barang.getIdBarang(), row.quantity); // stok berkurang
+        }
+    }
+        popup.close();
+        showSuccessPopup();
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        Alert alert = new Alert(Alert.AlertType.ERROR, "Terjadi kesalahan: " + ex.getMessage());
+        alert.showAndWait();
+    }
+});
 
         container.getChildren().addAll(headerStack, title, fields, submitBtn);
 

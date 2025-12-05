@@ -14,13 +14,13 @@ public class Barang {
     private String kode_barang;
     private String nama_barang;
     private String kategori;
-    private String stok;
+    private int stok;
     private String kondisi;
     private String lokasi;
     private String status;
     
     public Barang(int id_barang, String kode_barang, String nama_barang, String kategori,
-                  String stok, String kondisi, String lokasi, String status){
+                  int stok, String kondisi, String lokasi, String status){
         
         this.id_barang = id_barang;
         this.kode_barang = kode_barang;
@@ -64,11 +64,11 @@ public class Barang {
         this.kategori = kategori;
     }
     
-    public String getStok(){
+    public int getStok(){
         return stok;
     }
     
-    public void setStok(String stok){
+    public void setStok(int stok){
         this.stok = stok;
     }
     

@@ -31,7 +31,7 @@ public class BarangDAO {
                       rs.getString("kode_barang"),
                       rs.getString("nama_barang"),
                       rs.getString("kategori"),
-                      rs.getString("stok"),
+                      rs.getInt("stok"),
                       rs.getString("kondisi"),
                       rs.getString("lokasi"),
                       rs.getString("status")
@@ -42,5 +42,22 @@ public class BarangDAO {
       }
       
       return list;
-  }
+    }
+  
+    //UPDATE BARANG
+    public static boolean reduceStok(int idBarang, int jumlah) {
+    String sql = "UPDATE barang SET stok = stok - ? WHERE id_barang = ? AND CAST(stok AS UNSIGNED) >= ?";
+        try {
+            Connection conn = Koneksi.getKoneksi();
+            var ps = conn.prepareStatement(sql);
+            ps.setInt(1, jumlah);
+            ps.setInt(2, idBarang);
+            ps.setInt(3, jumlah);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.out.println("Update Stok Error: " + e.getMessage());
+            return false;
+        }
+    }
+
 }
