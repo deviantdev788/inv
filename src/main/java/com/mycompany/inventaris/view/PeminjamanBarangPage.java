@@ -10,6 +10,11 @@ package com.mycompany.inventaris.view;
  */
 
 import com.mycompany.inventaris.model.Barang;
+import com.mycompany.inventaris.dao.BarangDAO;
+import com.mycompany.inventaris.dao.PeminjamanDAO;
+import com.mycompany.inventaris.dao.PermintaanDAO;
+import com.mycompany.inventaris.model.Peminjaman;
+import com.mycompany.inventaris.model.Permintaan;
 import com.mycompany.inventaris.model.User;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
@@ -25,6 +30,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class PeminjamanBarangPage extends BorderPane {
@@ -33,16 +39,14 @@ public class PeminjamanBarangPage extends BorderPane {
     private List<Barang> allData;
     private List<BarangRow> selectedItems = new ArrayList<>();
     private User user;
+    private PermintaanDAO permintaanDAO;
+    private PeminjamanDAO peminjamanDAO;
 
     public PeminjamanBarangPage(User user) {
+        allData = BarangDAO.getAll();
+        permintaanDAO = new PermintaanDAO();
+        peminjamanDAO = new PeminjamanDAO();
         this.user = user;
-        allData = List.of(
-            new Barang(1, "RL001", "Spidol", "Reusable", 25, "Baik", "Ruang A", "Tersedia"),
-            new Barang(2, "RL002", "Penghapus Papan Tulis", "Reusable", 25, "Baik", "Ruang B", "Tersedia"),
-            new Barang(3, "CL001", "Kertas HVS", "Consumable", 15, "Baik", "Ruang C", "Tersedia"),
-            new Barang(4, "NC001", "Webcam", "Non Consumable", 20, "Baik", "Lab", "Tersedia"),
-            new Barang(5, "NC002", "Proyektor", "Non Consumable", 20, "Baik", "Ruang D", "Tersedia")
-        );
         initializeUI();
         this.sceneProperty().addListener((observable, oldScene, newScene) -> {
          if (newScene != null) {
@@ -131,7 +135,7 @@ public class PeminjamanBarangPage extends BorderPane {
         noCol.setCellValueFactory(data -> 
             new SimpleStringProperty(String.valueOf(table.getItems().indexOf(data.getValue()) + 1)));
 
-        TableColumn<BarangRow, String> idCol = new TableColumn<>("ID Barang");
+        TableColumn<BarangRow, String> idCol = new TableColumn<>("Kode Barang");
         idCol.setMinWidth(100);
         idCol.setMaxWidth(120);
         idCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().barang.getKode()));
@@ -275,8 +279,14 @@ public class PeminjamanBarangPage extends BorderPane {
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        String fullName = user.getNama().toUpperCase();
-        Label nameLabel = new Label(fullName);
+        String fullName = user.getNama();
+        String[] parts = fullName.split(" ");
+        
+        String displayName = parts[0];
+        if(parts.length> 1){
+            displayName += " " + parts[1];
+        }
+        Label nameLabel = new Label(displayName.toUpperCase());
         nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         
         Label roleLabel = new Label(user.getRole().toUpperCase());
@@ -482,18 +492,59 @@ public class PeminjamanBarangPage extends BorderPane {
         alert.setHeaderText(null);
         alert.setContentText("Semua field harus diisi!");
         alert.showAndWait();
-    } else {
-        popup.hide();
-        javafx.application.Platform.runLater(() -> {
-            try {
-                Thread.sleep(100); // Delay 100ms
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
+        return; // penting untuk stop eksekusi
+    }
+
+    try {
+        for (BarangRow row : selectedItems) {
+            if (row.quantity > 0) {
+                String kategori = row.barang.getKategori();
+                Date now = new Date();
+
+                if ("consumable".equalsIgnoreCase(kategori)) {
+                    Permintaan p = new Permintaan();
+                    p.setIdUser(user.getIdUser());
+                    p.setIdBarang(row.barang.getIdBarang());
+                    p.setJumlah(row.quantity);
+                    p.setTanggal(now);
+
+                    boolean sukses = permintaanDAO.insert(p);
+                    if (!sukses) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR,
+                            "Gagal menyimpan permintaan untuk " + row.barang.getNama());
+                        alert.showAndWait();
+                        return;
+                    }
+
+                } else { // non-consumable
+                    Peminjaman pm = new Peminjaman();
+                    pm.setIdUser(user.getIdUser());
+                    pm.setIdBarang(row.barang.getIdBarang());
+                    pm.setJumlah(row.quantity);
+                    pm.setTanggalPeminjaman(now);
+                    pm.setStatus("Dipinjam");
+
+                    boolean sukses = peminjamanDAO.insert(pm);
+                    if (!sukses) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR,
+                            "Gagal menyimpan peminjaman untuk " + row.barang.getNama());
+                        alert.showAndWait();
+                        return;
+                    }
+                }
             }
-            showSuccessPopup();
-             });
-            }
-        });
+        }
+
+        popup.close();
+        showSuccessPopup();
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        Alert alert = new Alert(Alert.AlertType.ERROR, "Terjadi kesalahan: " + ex.getMessage());
+        alert.showAndWait();
+    }
+});
+
 
         container.getChildren().addAll(header, title, fields, submitBtn);
 

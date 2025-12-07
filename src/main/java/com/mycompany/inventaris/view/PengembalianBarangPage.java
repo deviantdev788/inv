@@ -9,6 +9,10 @@ package com.mycompany.inventaris.view;
  * @author Amy
  */
 
+import com.mycompany.inventaris.dao.PeminjamanDAO;
+import com.mycompany.inventaris.dao.PengembalianDAO;
+import com.mycompany.inventaris.model.Peminjaman;
+import com.mycompany.inventaris.model.Pengembalian;
 import com.mycompany.inventaris.model.User;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
@@ -25,23 +29,21 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import java.util.ArrayList;
 import java.util.List;
+import javafx.beans.property.SimpleObjectProperty;
 
 public class PengembalianBarangPage extends BorderPane {
-
-    private TableView<PeminjamanRow> table;
-    private List<PeminjamanRow> allData;
-    private List<PeminjamanRow> selectedItems = new ArrayList<>();
+    
+    private TableView<Peminjaman> table;
+    private List<Peminjaman> allData = new ArrayList<>();
+    private List<Peminjaman> selectedItems = new ArrayList<>();
+    private PeminjamanDAO peminjamanDAO = new PeminjamanDAO();
+    private PengembalianDAO pengembalianDAO = new PengembalianDAO();
     private User user;
-
+    
     public PengembalianBarangPage(User user) {
         this.user = user;
-        allData = new ArrayList<>();
-        // Dummy data - barang yang sedang dipinjam
-        allData.add(new PeminjamanRow("RL001", "Spidol", "26/11/2025", "1 pcs"));
-        allData.add(new PeminjamanRow("NC002", "Proyektor", "25/11/2025", "1 pcs"));
-        allData.add(new PeminjamanRow("LP003", "Laptop Asus", "24/11/2025", "1 pcs"));
-        
         initializeUI();
+        loadData();
     }
 
     private void initializeUI() {
@@ -101,34 +103,36 @@ public class PengembalianBarangPage extends BorderPane {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setTableMenuButtonVisible(false);
 
-        TableColumn<PeminjamanRow, String> noCol = new TableColumn<>("No.");
+        TableColumn<Peminjaman, String> noCol = new TableColumn<>("No.");
         noCol.setMinWidth(50);
         noCol.setMaxWidth(80);
         noCol.setStyle("-fx-alignment: CENTER;");
         noCol.setCellValueFactory(data -> 
             new SimpleStringProperty(String.valueOf(table.getItems().indexOf(data.getValue()) + 1)));
 
-        TableColumn<PeminjamanRow, String> idCol = new TableColumn<>("ID Barang");
+        TableColumn<Peminjaman, String> idCol = new TableColumn<>("Nama Barang");
         idCol.setMinWidth(120);
         idCol.setStyle("-fx-alignment: CENTER-LEFT;");
-        idCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().idBarang));
+        idCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNamaBarang()));
 
-        TableColumn<PeminjamanRow, String> namaCol = new TableColumn<>("Nama Barang");
+        TableColumn<Peminjaman, String> namaCol = new TableColumn<>("Kode Barang");
         namaCol.setMinWidth(200);
         namaCol.setStyle("-fx-alignment: CENTER-LEFT;");
-        namaCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().namaBarang));
+        namaCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getKodeBarang()));
 
-        TableColumn<PeminjamanRow, String> tanggalCol = new TableColumn<>("Tanggal Peminjaman");
+        TableColumn<Peminjaman, String> tanggalCol = new TableColumn<>("Tanggal Peminjaman");
         tanggalCol.setMinWidth(150);
         tanggalCol.setStyle("-fx-alignment: CENTER-LEFT;");
-        tanggalCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().tanggalPinjam));
-
-        TableColumn<PeminjamanRow, String> jumlahCol = new TableColumn<>("Jumlah Barang");
+        tanggalCol.setCellValueFactory(data -> new SimpleObjectProperty(data.getValue().getTanggalPeminjaman()));
+        
+        TableColumn<Peminjaman, String> jumlahCol = new TableColumn<>("Jumlah Barang");
         jumlahCol.setMinWidth(130);
         jumlahCol.setStyle("-fx-alignment: CENTER-LEFT;");
-        jumlahCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().jumlahBarang));
-
-        TableColumn<PeminjamanRow, Void> aksiCol = new TableColumn<>("Aksi");
+        jumlahCol.setCellValueFactory(data ->
+            new SimpleStringProperty(String.valueOf(data.getValue().getJumlah()))
+        );
+        
+        TableColumn<Peminjaman, Void> aksiCol = new TableColumn<>("Aksi");
         aksiCol.setMinWidth(120);
         aksiCol.setStyle("-fx-alignment: CENTER-LEFT;");
         aksiCol.setCellFactory(col -> new TableCell<>() {
@@ -146,7 +150,7 @@ public class PengembalianBarangPage extends BorderPane {
                 );
 
                 checkBox.setOnAction(e -> {
-                    PeminjamanRow row = getTableView().getItems().get(getIndex());
+                    Peminjaman row = getTableView().getItems().get(getIndex());
                     if (checkBox.isSelected()) {
                         if (!selectedItems.contains(row)) {
                             selectedItems.add(row);
@@ -157,14 +161,14 @@ public class PengembalianBarangPage extends BorderPane {
                 });
 
                 infoBtn.setOnAction(e -> {
-                    PeminjamanRow row = getTableView().getItems().get(getIndex());
+                    Peminjaman row = getTableView().getItems().get(getIndex());
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
                     alert.setTitle("Info Barang");
-                    alert.setHeaderText(row.namaBarang);
+                    alert.setHeaderText(row.getNamaBarang());
                     alert.setContentText(
-                        "ID: " + row.idBarang + "\n" +
-                        "Tanggal Pinjam: " + row.tanggalPinjam + "\n" +
-                        "Jumlah: " + row.jumlahBarang
+                        "ID: " + row.getIdBarang() + "\n" +
+                        "Tanggal Pinjam: " + row.getTanggalPeminjaman() + "\n" +
+                        "Jumlah: " + row.getJumlah()
                     );
                     alert.showAndWait();
                 });
@@ -220,8 +224,8 @@ public class PengembalianBarangPage extends BorderPane {
                 String keyword = newVal.toLowerCase();
                 allData.stream()
                     .filter(row -> 
-                        row.idBarang.toLowerCase().contains(keyword) ||
-                        row.namaBarang.toLowerCase().contains(keyword))
+                        row.getKodeBarang().toLowerCase().contains(keyword) ||
+                        row.getNamaBarang().toLowerCase().contains(keyword))
                     .forEach(row -> table.getItems().add(row));
             }
         });
@@ -230,6 +234,12 @@ public class PengembalianBarangPage extends BorderPane {
 
         this.setLeft(sidebar);
         this.setCenter(mainContent);
+    }
+    
+    private void loadData(){
+        allData.clear();
+        allData.addAll(peminjamanDAO.getByUser(user.getIdUser()));
+        table.getItems().setAll(allData);
     }
 
     private VBox createSidebar() {
@@ -257,8 +267,14 @@ public class PengembalianBarangPage extends BorderPane {
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        String fullName = user.getNama().toUpperCase();
-        Label nameLabel = new Label(fullName);
+        String fullName = user.getNama();
+        String[] parts = fullName.split(" ");
+        
+        String displayName = parts[0];
+        if(parts.length> 1){
+            displayName += " " + parts[1];
+        }
+        Label nameLabel = new Label(displayName.toUpperCase());
         nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         
         Label roleLabel = new Label(user.getRole().toUpperCase());
@@ -405,7 +421,7 @@ public class PengembalianBarangPage extends BorderPane {
 
         TextField namaKodeBarang = new TextField();
         String barangList = selectedItems.stream()
-            .map(r -> r.namaBarang + " (" + r.idBarang + ")")
+            .map(r -> r.getNamaBarang() + " (" + r.getIdBarang() + ")")
             .reduce((a, b) -> a + ", " + b)
             .orElse("");
         namaKodeBarang.setText(barangList);
@@ -425,7 +441,7 @@ public class PengembalianBarangPage extends BorderPane {
         VBox jenisField = createFieldCombo("Jenis Barang", jenisBarang);
 
         TextField jumlahBarang = new TextField();
-        jumlahBarang.setText(selectedItems.get(0).jumlahBarang);
+        jumlahBarang.setText(String.valueOf(selectedItems.get(0).getJumlah()));
         jumlahBarang.setEditable(false);
         VBox jumlahField = createField("Jumlah Barang", jumlahBarang);
 
@@ -463,6 +479,28 @@ public class PengembalianBarangPage extends BorderPane {
                 alert.setHeaderText(null);
                 alert.setContentText("Semua field harus diisi!");
                 alert.showAndWait();
+            } 
+            
+            if (selectedItems.isEmpty()) {
+                new Alert(Alert.AlertType.WARNING, "Pilih barang terlebih dahulu").show();
+                return;
+            }
+            Peminjaman selected = selectedItems.get(0);
+            Pengembalian pengembalian = new Pengembalian();
+            pengembalian.setIdPeminjaman(selected.getIdPeminjaman());
+            pengembalian.setIdUser(user.getIdUser()); 
+            pengembalian.setIdBarang(selected.getIdBarang());
+            pengembalian.setLokasi(lokasiPengembalian.getText());
+            pengembalian.setJumlah(selected.getJumlah());
+            pengembalian.setTanggalKembali(new java.util.Date());
+            pengembalian.setStatus("selesai"); // 
+            boolean success = pengembalianDAO.insert(pengembalian);
+            
+             if (success) {
+                popup.close();
+                showSuccessPopup();
+                loadData();       
+                selectedItems.clear();
             } else {
                 popup.hide();
                 javafx.application.Platform.runLater(() -> {
@@ -586,19 +624,5 @@ public class PengembalianBarangPage extends BorderPane {
         // Reset selection
         selectedItems.clear();
         table.refresh();
-    }
-
-    static class PeminjamanRow {
-        String idBarang;
-        String namaBarang;
-        String tanggalPinjam;
-        String jumlahBarang;
-
-        PeminjamanRow(String idBarang, String namaBarang, String tanggalPinjam, String jumlahBarang) {
-            this.idBarang = idBarang;
-            this.namaBarang = namaBarang;
-            this.tanggalPinjam = tanggalPinjam;
-            this.jumlahBarang = jumlahBarang;
-        }
     }
 }

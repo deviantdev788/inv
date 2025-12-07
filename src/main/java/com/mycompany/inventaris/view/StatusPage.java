@@ -9,6 +9,8 @@ package com.mycompany.inventaris.view;
  * @author Amy
  */
 
+import com.mycompany.inventaris.dao.StatusDAO;
+import com.mycompany.inventaris.model.Riwayat;
 import com.mycompany.inventaris.model.User;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
@@ -28,19 +30,15 @@ import java.util.List;
 
 public class StatusPage extends BorderPane {
     
-    private TableView<StatusBarangData> table;
-    private List<StatusBarangData> allData;
+    private TableView<Riwayat> table = new TableView<>();
+    private StatusDAO statusDAO = new StatusDAO();
+    private List<Riwayat> allData = new ArrayList<>();
     private User user;
     
     public StatusPage(User user) {
         this.user = user;
-        allData = new ArrayList<>();
-        // Dummy data
-        allData.add(new StatusBarangData("RL001", "Spidol", "Reusable", "1 pcs", "Belum Diverifikasi"));
-        allData.add(new StatusBarangData("NC002", "Proyektor", "Electronics", "1 pcs", "Diverifikasi"));
-        allData.add(new StatusBarangData("LP003", "Laptop Asus", "Electronics", "1 pcs", "Ditolak"));
-        
         initializeUI();
+        loadData();
     }
 
     private void initializeUI() {
@@ -73,7 +71,7 @@ public class StatusPage extends BorderPane {
         topBar.setAlignment(Pos.CENTER_LEFT);
 
         ComboBox<String> kategoriBox = new ComboBox<>();
-        kategoriBox.getItems().addAll("Semua Kategori", "Reusable", "Electronics", "Furniture");
+        kategoriBox.getItems().addAll("Semua Kategori", "Permintaan", "Peminjaman");
         kategoriBox.setValue("Semua Kategori");
         kategoriBox.setStyle("-fx-font-size: 13px; -fx-padding: 6;");
 
@@ -86,35 +84,37 @@ public class StatusPage extends BorderPane {
         table.setTableMenuButtonVisible(false);
         table.setPlaceholder(new Label("TIDAK ADA STATUS BARANG."));
 
-        TableColumn<StatusBarangData, String> noCol = new TableColumn<>("No.");
+        TableColumn<Riwayat, String> noCol = new TableColumn<>("No.");
         noCol.setMinWidth(50);
         noCol.setMaxWidth(80);
         noCol.setStyle("-fx-alignment: CENTER;");
         noCol.setCellValueFactory(data -> 
             new SimpleStringProperty(String.valueOf(table.getItems().indexOf(data.getValue()) + 1)));
 
-        TableColumn<StatusBarangData, String> idCol = new TableColumn<>("ID Barang");
+        TableColumn<Riwayat, String> idCol = new TableColumn<>("Tipe");
         idCol.setMinWidth(120);
         idCol.setMaxWidth(150);
         idCol.setStyle("-fx-alignment: CENTER-LEFT;");
-        idCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getIdBarang()));
+        idCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getType()));
 
-        TableColumn<StatusBarangData, String> namaCol = new TableColumn<>("Nama Barang");
+        TableColumn<Riwayat, String> namaCol = new TableColumn<>("Nama Barang");
         namaCol.setMinWidth(180);
         namaCol.setStyle("-fx-alignment: CENTER-LEFT;");
         namaCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNamaBarang()));
 
-        TableColumn<StatusBarangData, String> kategoriCol = new TableColumn<>("Kategori");
+        TableColumn<Riwayat, String> kategoriCol = new TableColumn<>("Kode Barang");
         kategoriCol.setMinWidth(150);
         kategoriCol.setStyle("-fx-alignment: CENTER-LEFT;");
-        kategoriCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getKategori()));
+        kategoriCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getKodeBarang()));
 
-        TableColumn<StatusBarangData, String> jumlahCol = new TableColumn<>("Jumlah Barang");
+        TableColumn<Riwayat, String> jumlahCol = new TableColumn<>("Jumlah Barang");
         jumlahCol.setMinWidth(130);
         jumlahCol.setStyle("-fx-alignment: CENTER-LEFT;");
-        jumlahCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getJumlahBarang()));
+        jumlahCol.setCellValueFactory(data ->
+            new SimpleStringProperty(String.valueOf(data.getValue().getJumlah()))
+        );
 
-        TableColumn<StatusBarangData, String> statusCol = new TableColumn<>("Status");
+        TableColumn<Riwayat, String> statusCol = new TableColumn<>("Status");
         statusCol.setMinWidth(180);
         statusCol.setStyle("-fx-alignment: CENTER-LEFT;");
         statusCol.setCellFactory(col -> new TableCell<>() {
@@ -127,7 +127,7 @@ public class StatusPage extends BorderPane {
                 } else {
                     Label statusLabel = new Label(status);
                     
-                    if (status.equals("Belum Diverifikasi")) {
+                    if (status.equals("Pending")) {
                         statusLabel.setStyle(
                             "-fx-background-color: #fef3c7; " +
                             "-fx-text-fill: #92400e; " +
@@ -136,7 +136,7 @@ public class StatusPage extends BorderPane {
                             "-fx-font-size: 11px; " +
                             "-fx-font-weight: bold;"
                         );
-                    } else if (status.equals("Diverifikasi")) {
+                    } else if (status.equals("Dipinjam")) {
                         statusLabel.setStyle(
                             "-fx-background-color: #dcfce7; " +
                             "-fx-text-fill: #166534; " +
@@ -145,7 +145,7 @@ public class StatusPage extends BorderPane {
                             "-fx-font-size: 11px; " +
                             "-fx-font-weight: bold;"
                         );
-                    } else if (status.equals("Ditolak")) {
+                    } else if (status.equals("Diproses")) {
                         statusLabel.setStyle(
                             "-fx-background-color: #fee2e2; " +
                             "-fx-text-fill: #991b1b; " +
@@ -197,14 +197,14 @@ public class StatusPage extends BorderPane {
         searchField.textProperty().addListener((obs, old, newVal) -> {
             table.getItems().clear();
             if (newVal.isEmpty()) {
-                allData.forEach(data -> table.getItems().add(data));
+                table.getItems().addAll(allData);
             } else {
                 String keyword = newVal.toLowerCase();
                 allData.stream()
                     .filter(data -> 
-                        data.getIdBarang().toLowerCase().contains(keyword) ||
                         data.getNamaBarang().toLowerCase().contains(keyword) ||
-                        data.getKategori().toLowerCase().contains(keyword))
+                        data.getKodeBarang().toLowerCase().contains(keyword) ||
+                        data.getType().toLowerCase().contains(keyword))
                     .forEach(data -> table.getItems().add(data));
             }
         });
@@ -214,11 +214,12 @@ public class StatusPage extends BorderPane {
             table.getItems().clear();
             String selected = kategoriBox.getValue();
             if (selected.equals("Semua Kategori")) {
-                allData.forEach(data -> table.getItems().add(data));
+                table.getItems().addAll(allData);
+                return;
             } else {
                 allData.stream()
-                    .filter(data -> data.getKategori().equals(selected))
-                    .forEach(data -> table.getItems().add(data));
+                    .filter(data -> data.getType().equals(selected))
+                    .forEach(table.getItems()::add);
             }
         });
 
@@ -227,9 +228,11 @@ public class StatusPage extends BorderPane {
         this.setLeft(sidebar);
         this.setCenter(mainContent);
     }
-
-    private void showActionMenu(Button button, StatusBarangData data) {
-        // Method ini tidak digunakan lagi karena tombol menu sudah dihapus
+    
+    private void loadData(){
+        allData.clear();
+        allData.addAll(statusDAO.getStatusByUser(user.getIdUser()));
+        table.getItems().setAll(allData);
     }
 
     private VBox createSidebar() {
@@ -257,8 +260,14 @@ public class StatusPage extends BorderPane {
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        String fullName = user.getNama().toUpperCase();
-        Label nameLabel = new Label(fullName);
+        String fullName = user.getNama();
+        String[] parts = fullName.split(" ");
+        
+        String displayName = parts[0];
+        if(parts.length> 1){
+            displayName += " " + parts[1];
+        }
+        Label nameLabel = new Label(displayName.toUpperCase());
         nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         
         Label roleLabel = new Label(user.getRole().toUpperCase());
@@ -339,31 +348,5 @@ public class StatusPage extends BorderPane {
         }
         btn.setMaxWidth(Double.MAX_VALUE);
         return btn;
-    }
-
-    // Inner class untuk data status barang
-    public static class StatusBarangData {
-        private String idBarang;
-        private String namaBarang;
-        private String kategori;
-        private String jumlahBarang;
-        private String status;
-        
-        public StatusBarangData(String idBarang, String namaBarang, String kategori, 
-                               String jumlahBarang, String status) {
-            this.idBarang = idBarang;
-            this.namaBarang = namaBarang;
-            this.kategori = kategori;
-            this.jumlahBarang = jumlahBarang;
-            this.status = status;
-        }
-        
-        public String getIdBarang() { return idBarang; }
-        public String getNamaBarang() { return namaBarang; }
-        public String getKategori() { return kategori; }
-        public String getJumlahBarang() { return jumlahBarang; }
-        public String getStatus() { return status; }
-        
-        public void setStatus(String status) { this.status = status; }
     }
 }

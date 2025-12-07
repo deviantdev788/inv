@@ -9,7 +9,11 @@ package com.mycompany.inventaris.view;
  * @author Amy
  */
 
+import com.mycompany.inventaris.dao.RiwayatDAO;
+import com.mycompany.inventaris.dao.StatusDAO;
+import com.mycompany.inventaris.model.Riwayat;
 import com.mycompany.inventaris.model.User;
+import java.text.SimpleDateFormat;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -25,22 +29,21 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import java.util.ArrayList;
 import java.util.List;
+import javafx.beans.property.SimpleObjectProperty;
 
 public class RiwayatPage extends BorderPane {
     
-    private TableView<PeminjamanData> table;
-    private List<PeminjamanData> allData;
+    private TableView<Riwayat> table = new TableView<>();
+    private RiwayatDAO riwayatDAO = new RiwayatDAO();
+    private List<Riwayat> allData = new ArrayList<>();
+    private SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
     private User user;
     
     public RiwayatPage(User user) {
         this.user = user;
-        allData = new ArrayList<>();
-        // Dummy data
-        allData.add(new PeminjamanData("PMJ001", "Medi Pribadi", "Spidol (RL001)", "26/11/2025", "26/11/2025", "1 pcs", "Dikembalikan"));
-        allData.add(new PeminjamanData("PMJ002", "Ahmad Fauzi", "Laptop Asus", "25/11/2025", "27/11/2025", "1 pcs", "Dipinjam"));
-        allData.add(new PeminjamanData("PMJ003", "Siti Nurhaliza", "Proyektor (NC002)", "24/11/2025", "26/11/2025", "1 pcs", "Dikembalikan"));
-        
         initializeUI();
+        loadData();
+        
     }
 
     private void initializeUI() {
@@ -84,40 +87,42 @@ public class RiwayatPage extends BorderPane {
         table.setStyle("-fx-background-color: white; -fx-background-radius: 10;");
         table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
 
-        TableColumn<PeminjamanData, String> noCol = new TableColumn<>("No.");
+        TableColumn<Riwayat, String> noCol = new TableColumn<>("No.");
         noCol.setMinWidth(50);
         noCol.setMaxWidth(50);
         noCol.setStyle("-fx-alignment: CENTER;");
         noCol.setCellValueFactory(data -> 
             new SimpleStringProperty(String.valueOf(table.getItems().indexOf(data.getValue()) + 1)));
 
-        TableColumn<PeminjamanData, String> idCol = new TableColumn<>("ID Peminjaman");
+        TableColumn<Riwayat, String> idCol = new TableColumn<>("Tipe");
         idCol.setMinWidth(120);
         idCol.setMaxWidth(150);
-        idCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getIdPeminjaman()));
+        idCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getType()));
 
-        TableColumn<PeminjamanData, String> namaCol = new TableColumn<>("Nama Peminjam");
+        TableColumn<Riwayat, String> namaCol = new TableColumn<>("Nama Barang");
         namaCol.setMinWidth(150);
-        namaCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNamaPeminjam()));
+        namaCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNamaBarang()));
 
-        TableColumn<PeminjamanData, String> barangCol = new TableColumn<>("Nama & Kode Barang");
+        TableColumn<Riwayat, String> barangCol = new TableColumn<>("Kode Barang");
         barangCol.setMinWidth(180);
-        barangCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNamaBarang()));
+        barangCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getKodeBarang()));
 
-        TableColumn<PeminjamanData, String> tglPinjamCol = new TableColumn<>("Tanggal Peminjaman");
+        TableColumn<Riwayat, String> tglPinjamCol = new TableColumn<>("Tanggal Peminjaman");
         tglPinjamCol.setMinWidth(140);
-        tglPinjamCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTanggalPinjam()));
+        tglPinjamCol.setCellValueFactory(data -> new SimpleObjectProperty(data.getValue().getTanggalPengajuan()));
 
-        TableColumn<PeminjamanData, String> tglKembaliCol = new TableColumn<>("Tanggal Pengembalian");
+        TableColumn<Riwayat, String> tglKembaliCol = new TableColumn<>("Tanggal Pengembalian");
         tglKembaliCol.setMinWidth(150);
-        tglKembaliCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getTanggalKembali()));
+        tglKembaliCol.setCellValueFactory(data -> new SimpleObjectProperty(data.getValue().getTanggalPengembalian()));
 
-        TableColumn<PeminjamanData, String> jumlahCol = new TableColumn<>("Jumlah Barang");
+        TableColumn<Riwayat, String> jumlahCol = new TableColumn<>("Jumlah Barang");
         jumlahCol.setMinWidth(120);
         jumlahCol.setMaxWidth(130);
-        jumlahCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getJumlahBarang()));
-
-        TableColumn<PeminjamanData, String> statusCol = new TableColumn<>("Status");
+        jumlahCol.setCellValueFactory(data ->
+            new SimpleStringProperty(String.valueOf(data.getValue().getJumlah()))
+        );
+        
+        TableColumn<Riwayat, String> statusCol = new TableColumn<>("Status");
         statusCol.setMinWidth(130);
         statusCol.setMaxWidth(150);
         statusCol.setCellFactory(col -> new TableCell<>() {
@@ -194,8 +199,8 @@ public class RiwayatPage extends BorderPane {
                 String keyword = newVal.toLowerCase();
                 allData.stream()
                     .filter(data -> 
-                        data.getIdPeminjaman().toLowerCase().contains(keyword) ||
-                        data.getNamaPeminjam().toLowerCase().contains(keyword) ||
+                        data.getNamaBarang().toLowerCase().contains(keyword) ||
+//                        data.getNamaPeminjam().toLowerCase().contains(keyword) ||
                         data.getNamaBarang().toLowerCase().contains(keyword))
                     .forEach(data -> table.getItems().add(data));
             }
@@ -220,6 +225,12 @@ public class RiwayatPage extends BorderPane {
         this.setCenter(mainContent);
     }
 
+    private void loadData(){
+        allData.clear();
+        allData.addAll(riwayatDAO.getByUser(user.getIdUser()));
+        table.getItems().setAll(allData);
+    }
+    
     private VBox createSidebar() {
         VBox sidebar = new VBox(10);
         sidebar.setPadding(new Insets(20, 10, 20, 10));
@@ -245,8 +256,14 @@ public class RiwayatPage extends BorderPane {
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        String fullName = user.getNama().toUpperCase();
-        Label nameLabel = new Label(fullName);
+        String fullName = user.getNama();
+        String[] parts = fullName.split(" ");
+        
+        String displayName = parts[0];
+        if(parts.length> 1){
+            displayName += " " + parts[1];
+        }
+        Label nameLabel = new Label(displayName.toUpperCase());        
         nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         
         Label roleLabel = new Label(user.getRole().toUpperCase());
@@ -328,7 +345,7 @@ public class RiwayatPage extends BorderPane {
         return btn;
     }
 
-    private void showDetailPopup(PeminjamanData data) {
+    private void showDetailPopup(Riwayat data) {
         Stage popup = new Stage();
         popup.initModality(Modality.APPLICATION_MODAL);
         popup.initStyle(StageStyle.TRANSPARENT);
@@ -366,13 +383,18 @@ public class RiwayatPage extends BorderPane {
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
 
         VBox details = new VBox(12);
+        
+        String tanggalPengajuan = data.getTanggalPengajuan() != null ? sdf.format(data.getTanggalPengajuan()) : "-";
+        String tanggalKembali = data.getTanggalPengembalian() != null ? sdf.format(data.getTanggalPengembalian()) : "-";
+
+        
         details.getChildren().addAll(
-            createDetailRow("ID Peminjaman", data.getIdPeminjaman()),
-            createDetailRow("Nama Peminjam", data.getNamaPeminjam()),
-            createDetailRow("Nama & Kode Barang", data.getNamaBarang()),
-            createDetailRow("Tanggal Peminjaman", data.getTanggalPinjam()),
-            createDetailRow("Tanggal Pengembalian", data.getTanggalKembali()),
-            createDetailRow("Jumlah Barang", data.getJumlahBarang()),
+            createDetailRow("Tipe", data.getType()),
+            createDetailRow("Nama Barang", data.getNamaBarang()),
+            createDetailRow("Kode Barang", data.getKodeBarang()),
+            createDetailRow("Tanggal Pengajuan", tanggalPengajuan),
+            createDetailRow("Tanggal Pengembalian", tanggalKembali),
+            createDetailRow("Jumlah Barang", String.valueOf(data.getJumlah())),
             createDetailRow("Status", data.getStatus())
         );
 
@@ -415,35 +437,5 @@ public class RiwayatPage extends BorderPane {
         
         box.getChildren().addAll(lblLabel, lblValue);
         return box;
-    }
-
-    // Inner class untuk data peminjaman
-    public static class PeminjamanData {
-        private String idPeminjaman;
-        private String namaPeminjam;
-        private String namaBarang;
-        private String tanggalPinjam;
-        private String tanggalKembali;
-        private String jumlahBarang;
-        private String status;
-        
-        public PeminjamanData(String idPeminjaman, String namaPeminjam, String namaBarang, 
-                             String tanggalPinjam, String tanggalKembali, String jumlahBarang, String status) {
-            this.idPeminjaman = idPeminjaman;
-            this.namaPeminjam = namaPeminjam;
-            this.namaBarang = namaBarang;
-            this.tanggalPinjam = tanggalPinjam;
-            this.tanggalKembali = tanggalKembali;
-            this.jumlahBarang = jumlahBarang;
-            this.status = status;
-        }
-        
-        public String getIdPeminjaman() { return idPeminjaman; }
-        public String getNamaPeminjam() { return namaPeminjam; }
-        public String getNamaBarang() { return namaBarang; }
-        public String getTanggalPinjam() { return tanggalPinjam; }
-        public String getTanggalKembali() { return tanggalKembali; }
-        public String getJumlahBarang() { return jumlahBarang; }
-        public String getStatus() { return status; }
     }
 }

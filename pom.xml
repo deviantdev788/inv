@@ -41,5 +41,5 @@
         <maven.compiler.release>21</maven.compiler.release>
         <exec.mainClass>com.mycompany.inventaris.Inventaris</exec.mainClass>
     </properties>
-    <name>inventaris</name>
+    <name>Inventris</name>
 </project>

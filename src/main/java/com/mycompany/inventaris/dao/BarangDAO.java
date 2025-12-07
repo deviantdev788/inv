@@ -6,8 +6,6 @@ package com.mycompany.inventaris.dao;
 
 import com.mycompany.inventaris.Koneksi;
 import com.mycompany.inventaris.model.Barang;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

@@ -69,10 +69,15 @@ public class UserPage extends BorderPane {
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        String fullName = user.getNama().toUpperCase();
-
-        Label guestLabel = new Label(fullName);
-        guestLabel.setStyle(
+        String fullName = user.getNama();
+        String[] parts = fullName.split(" ");
+        
+        String displayName = parts[0];
+        if(parts.length> 1){
+            displayName += " " + parts[1];
+        }
+        Label nameLabel = new Label(displayName.toUpperCase());
+        nameLabel.setStyle(
                 "-fx-font-size: 14px;" +
                 "-fx-font-weight: bold;" +
                 "-fx-text-fill: #1e293b;"
@@ -85,7 +90,7 @@ public class UserPage extends BorderPane {
                 "-fx-font-weight: normal;"
         );
 
-        VBox textBox = new VBox(2, guestLabel, roleLabel);
+        VBox textBox = new VBox(2, nameLabel, roleLabel);
         textBox.setAlignment(Pos.CENTER_LEFT);
 
         HBox userBox = new HBox(10, userImage, textBox);
