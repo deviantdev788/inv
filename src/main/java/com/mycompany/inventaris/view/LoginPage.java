@@ -38,7 +38,7 @@ public class LoginPage extends StackPane {
 
     private void initializeUI() {
 
-        // ================= BACKGROUND ==================
+        // BACKGROUND
         ImageView background = new ImageView(
                 new Image(getClass().getResourceAsStream("/assets/login-bg.png"))
         );
@@ -47,7 +47,7 @@ public class LoginPage extends StackPane {
         background.fitHeightProperty().bind(this.heightProperty());
 
 
-        // ================= CARD CONTAINER ==================
+        // CARD CONTAINER
         VBox loginCard = new VBox(15);
         loginCard.setAlignment(Pos.TOP_LEFT);
 
@@ -69,7 +69,7 @@ public class LoginPage extends StackPane {
 
 
 
-        // ================= LOGO ==================
+        // LOGO
         ImageView logo = new ImageView(
                 new Image(getClass().getResourceAsStream("/assets/logoAsa.png"))
         );
@@ -79,7 +79,7 @@ public class LoginPage extends StackPane {
         StackPane logoBox = new StackPane(logo);
         logoBox.setAlignment(Pos.CENTER);
         logoBox.setMaxWidth(Double.MAX_VALUE);
-        // ================= TITLE ==================
+        // TITLE
         Label title = new Label("MASUK");
         title.setStyle(
                 "-fx-font-size: 18px;" +
@@ -88,7 +88,7 @@ public class LoginPage extends StackPane {
                 "-fx-text-fill: #1e293b;"
         );
 
-        // ================= USERNAME ==================
+        // USERNAME
         Label labelUser = new Label("Nama Pengguna");
         labelUser.setStyle("-fx-font-size: 11px; -fx-text-fill: #64748b;");
 
@@ -104,15 +104,13 @@ public class LoginPage extends StackPane {
                 "-fx-font-size: 12px;"
         );
 
-        // ================= PASSWORD FIELD ==================
+        // PASSWORD FIELD
         Label passLabel = new Label("Kata Sandi");
         passLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #64748b;");
 
-        // StackPane sebagai container passwordField + icon mata
         StackPane pwStack = new StackPane();
         pwStack.setAlignment(Pos.CENTER_LEFT);
 
-        // HIDDEN password
         PasswordField passwordHidden = new PasswordField();
         passwordHidden.setPromptText("Masukkan password");
         passwordHidden.setStyle(
@@ -124,7 +122,6 @@ public class LoginPage extends StackPane {
                 "-fx-font-size: 12px;"
         );
 
-        // VISIBLE password (toggle mode)
         TextField passwordVisible = new TextField();
         passwordVisible.setPromptText("Masukkan password");
         passwordVisible.setStyle(
@@ -138,7 +135,6 @@ public class LoginPage extends StackPane {
         passwordVisible.setVisible(false);
         passwordVisible.setManaged(false);
 
-        // ICON mata
         Button toggleBtn = new Button("👁");
         toggleBtn.setStyle(
                 "-fx-background-color: transparent;" +
@@ -148,11 +144,9 @@ public class LoginPage extends StackPane {
                 "-fx-cursor: hand;"
         );
 
-        // posisikan icon di kanan dalam field
         StackPane.setAlignment(toggleBtn, Pos.CENTER_RIGHT);
         StackPane.setMargin(toggleBtn, new Insets(0, 8, 0, 0));
 
-        // Toggle Show/Hide
         final boolean[] isShowing = {false};
         toggleBtn.setOnAction(e -> {
             isShowing[0] = !isShowing[0];
@@ -173,16 +167,14 @@ public class LoginPage extends StackPane {
             }
         });
 
-        // Masukkan field + icon ke StackPane
         pwStack.getChildren().addAll(passwordHidden, passwordVisible, toggleBtn);
 
 
-        // ================= REMEMBER ME ==================
         CheckBox rememberMe = new CheckBox("Ingat saya");
         rememberMe.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b;");
 
 
-        // ================= BUTTON LOGIN ==================
+        //BUTTON LOGIN 
         Button loginBtn = new Button("MASUK");
         loginBtn.setStyle(
                 "-fx-background-color: #dc2626;" +
@@ -211,7 +203,7 @@ public class LoginPage extends StackPane {
         });
 
 
-        // ================= ADD COMPONENT ==================
+        // ADD COMPONENT
         loginCard.getChildren().addAll(
                 logoBox,
                 title,

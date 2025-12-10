@@ -34,7 +34,7 @@ public class UserPage extends BorderPane {
 
     private void initializeUI() {
 
-        // ===================== SIDEBAR =====================
+        // SIDEBAR 
         VBox sidebar = new VBox(10);
         sidebar.setPadding(new Insets(20, 10, 20, 10));
         sidebar.setAlignment(Pos.TOP_LEFT);
@@ -59,7 +59,7 @@ public class UserPage extends BorderPane {
         logoBox.setPadding(new Insets(0,0,0,0));
 
 
-        // ===================== USER PROFILE =====================
+        // USER PROFILE 
         Image userPhoto = new Image(getClass().getResourceAsStream("/assets/user.png"));
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
@@ -98,7 +98,7 @@ public class UserPage extends BorderPane {
         userBox.setPadding(new Insets(10, 10, 20, 10));
 
 
-        // ===================== MENU =====================
+        // MENU 
         VBox menuBox = new VBox(8);
         menuBox.setAlignment(Pos.TOP_CENTER);
 
@@ -144,7 +144,7 @@ public class UserPage extends BorderPane {
 
 
 
-        // ===================== MAIN CONTENT =====================
+        // MAIN CONTENT 
         StackPane mainContent = new StackPane();
         mainContent.setStyle("-fx-background-color: #f8fafc;");
 
@@ -203,9 +203,6 @@ public class UserPage extends BorderPane {
         centerBox.getChildren().addAll(halo, buttonBox);
         mainContent.getChildren().add(centerBox);
 
-
-
-        // ===================== APPLY TO BORDERPANE =====================
         this.setLeft(sidebar);
         this.setCenter(mainContent);
     }
