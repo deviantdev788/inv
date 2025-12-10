@@ -1,5 +1,6 @@
 package com.mycompany.inventaris.view;
 
+import com.mycompany.inventaris.dao.UserAdminDAO;
 import com.mycompany.inventaris.model.User;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -17,26 +18,20 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import java.io.File;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
 public class AdminUserPage extends BorderPane {
     
-    private TableView<UserData> table;
-    private List<UserData> allData;
+    private TableView<User> table;
+    private List<User> allData;
     private User admin;
     
     public AdminUserPage(User admin) {
         this.admin = admin;
-        allData = new ArrayList<>();
-        // Dummy data
-        allData.add(new UserData("Ivan Muhammad Ilham", "#123456789", "25 Maret 2025", "Mahasiswa", "Active"));
-        allData.add(new UserData("Rindika Prameswati", "#123456789", "26 Maret 2025", "Dosen", "Nonaktif"));
-        allData.add(new UserData("Fadlia Fathur Rohman", "#123456789", "28 April 2025", "Mahasiswa", "Aktif"));
-        allData.add(new UserData("Raipa Triana", "#123456789", "29 April 2025", "Petugas", "Aktif"));
-        allData.add(new UserData("Jasmine Zada", "#123456789", "1 Agustus 2025", "Admin", "Aktif"));
-        allData.add(new UserData("Djuneedi", "#123456789", "2 Agustus 2025", "Dosen", "Nonaktif"));
-        
+        UserAdminDAO userAdminDAO = new UserAdminDAO();
+        allData = userAdminDAO.getAll();
         initializeUI();
     }
 
@@ -99,32 +94,31 @@ public class AdminUserPage extends BorderPane {
         table.setTableMenuButtonVisible(false);
 
         // Checkbox column
-        TableColumn<UserData, Boolean> checkCol = new TableColumn<>();
+        TableColumn<User, Void> checkCol = new TableColumn<>();
         checkCol.setMinWidth(50);
         checkCol.setMaxWidth(50);
-        checkCol.setCellValueFactory(data -> data.getValue().selectedProperty());
+
         checkCol.setCellFactory(col -> new TableCell<>() {
-            private CheckBox checkBox = new CheckBox();
+            private final CheckBox checkBox = new CheckBox();
+
             {
                 checkBox.setOnAction(e -> {
-                    UserData user = getTableView().getItems().get(getIndex());
-                    user.setSelected(checkBox.isSelected());
+                    User user = getTableRow().getItem();
+                    if (user != null) {
+                        System.out.println("Checked user: " + user.getNama());
+                    }
                 });
             }
+
             @Override
-            protected void updateItem(Boolean selected, boolean empty) {
-                super.updateItem(selected, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    checkBox.setSelected(selected);
-                    setGraphic(checkBox);
-                }
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : checkBox);
             }
         });
 
         // Avatar + Name column
-        TableColumn<UserData, String> nameCol = new TableColumn<>("Name");
+        TableColumn<User, String> nameCol = new TableColumn<>("Name");
         nameCol.setMinWidth(250);
         nameCol.setCellFactory(col -> new TableCell<>() {
             @Override
@@ -150,22 +144,26 @@ public class AdminUserPage extends BorderPane {
                 }
             }
         });
-        nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getName()));
+        nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNama()));
 
-        TableColumn<UserData, String> idCol = new TableColumn<>("ID");
+        TableColumn<User, String> idCol = new TableColumn<>("ID");
         idCol.setMinWidth(120);
-        idCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getId()));
+        idCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getIdentity()));
 
-        TableColumn<UserData, String> dateCol = new TableColumn<>("Date");
+        TableColumn<User, String> dateCol = new TableColumn<>("Date");
         dateCol.setMinWidth(150);
-        dateCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDate()));
-
-        TableColumn<UserData, String> positionCol = new TableColumn<>("Position");
+        dateCol.setCellValueFactory(data -> {
+            Timestamp ts = data.getValue().getCreatedAt();
+            return new SimpleStringProperty(
+                ts != null ? ts.toLocalDateTime().toLocalDate().toString() : "-"
+            );
+        });
+        TableColumn<User, String> positionCol = new TableColumn<>("Position");
         positionCol.setMinWidth(130);
-        positionCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getPosition()));
+        positionCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRole()));
 
         // Contact column with email icon
-        TableColumn<UserData, String> contactCol = new TableColumn<>("Contact");
+        TableColumn<User, String> contactCol = new TableColumn<>("Contact");
         contactCol.setMinWidth(100);
         contactCol.setCellFactory(col -> new TableCell<>() {
             @Override
@@ -185,7 +183,7 @@ public class AdminUserPage extends BorderPane {
         contactCol.setCellValueFactory(data -> new SimpleStringProperty(""));
 
         // Status column
-        TableColumn<UserData, String> statusCol = new TableColumn<>("Status");
+        TableColumn<User, String> statusCol = new TableColumn<>("Status");
         statusCol.setMinWidth(120);
         statusCol.setCellFactory(col -> new TableCell<>() {
             @Override
@@ -223,7 +221,7 @@ public class AdminUserPage extends BorderPane {
         statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getStatus()));
 
         // Action column
-        TableColumn<UserData, Void> actionCol = new TableColumn<>("Action");
+        TableColumn<User, Void> actionCol = new TableColumn<>("Action");
         actionCol.setMinWidth(80);
         actionCol.setCellFactory(col -> new TableCell<>() {
             private Button actionBtn = new Button("⋮");
@@ -235,7 +233,7 @@ public class AdminUserPage extends BorderPane {
                     "-fx-cursor: hand;"
                 );
                 actionBtn.setOnAction(e -> {
-                    UserData user = getTableView().getItems().get(getIndex());
+                    User user = getTableView().getItems().get(getIndex());
                     showActionMenu(actionBtn, user);
                 });
             }
@@ -276,9 +274,9 @@ public class AdminUserPage extends BorderPane {
                 String keyword = newVal.toLowerCase();
                 allData.stream()
                     .filter(data -> 
-                        data.getName().toLowerCase().contains(keyword) ||
-                        data.getId().toLowerCase().contains(keyword) ||
-                        data.getPosition().toLowerCase().contains(keyword))
+                        data.getNama().toLowerCase().contains(keyword) ||
+                        data.getIdentity().toLowerCase().contains(keyword) ||
+                        data.getRole().toLowerCase().contains(keyword))
                     .forEach(data -> table.getItems().add(data));
             }
         });
@@ -286,7 +284,7 @@ public class AdminUserPage extends BorderPane {
         // Sort functionality
         sortBox.setOnAction(e -> {
             String selected = sortBox.getValue();
-            List<UserData> sortedList = new ArrayList<>(table.getItems());
+            List<User> sortedList = new ArrayList<>(table.getItems());
             
             switch(selected) {
                 case "Newest":
@@ -296,10 +294,10 @@ public class AdminUserPage extends BorderPane {
                     sortedList = new ArrayList<>(allData);
                     break;
                 case "A-Z":
-                    sortedList.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+                    sortedList.sort((a, b) -> a.getNama().compareToIgnoreCase(b.getNama()));
                     break;
                 case "Z-A":
-                    sortedList.sort((a, b) -> b.getName().compareToIgnoreCase(a.getName()));
+                    sortedList.sort((a, b) -> b.getNama().compareToIgnoreCase(a.getNama()));
                     break;
             }
             
@@ -348,19 +346,38 @@ public class AdminUserPage extends BorderPane {
         return btn;
     }
 
-    private void showActionMenu(Button sourceBtn, UserData user) {
+    private void showActionMenu(Button sourceBtn, User user) {
         ContextMenu contextMenu = new ContextMenu();
         
         MenuItem editItem = new MenuItem("Edit");
         MenuItem deleteItem = new MenuItem("Delete");
         MenuItem viewItem = new MenuItem("View Details");
         
-        editItem.setOnAction(e -> System.out.println("Edit: " + user.getName()));
+        editItem.setOnAction(e -> System.out.println("Edit: " + user.getNama()));
         deleteItem.setOnAction(e -> {
-            allData.remove(user);
-            table.getItems().remove(user);
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Delete User");
+            confirm.setHeaderText("Are you sure ??");
+            confirm.setContentText("User \"" + user.getNama() + "\" will be deleted.");
+            
+            confirm.showAndWait().ifPresent(result -> {
+                if(result == ButtonType.OK){
+                    UserAdminDAO dao = new UserAdminDAO();
+                    boolean success = dao.delete(user.getIdUser());
+                    
+                    if(success){
+                        allData.remove(user);
+                        table.getItems().remove(user);
+                    }else{
+                        Alert error = new Alert(Alert.AlertType.ERROR);
+                        error.setHeaderText("Delete Failed");
+                        error.setContentText("Failed to delete user");
+                        error.show();
+                    }
+                }
+            });
         });
-        viewItem.setOnAction(e -> System.out.println("View: " + user.getName()));
+        viewItem.setOnAction(e -> System.out.println("View: " + user.getNama()));
         
         contextMenu.getItems().addAll(viewItem, editItem, deleteItem);
         contextMenu.show(sourceBtn, javafx.geometry.Side.BOTTOM, 0, 0);
@@ -560,19 +577,46 @@ public class AdminUserPage extends BorderPane {
         );
         
         submitBtn.setOnAction(e -> {
-            if (!firstNameField.getText().isEmpty() && !lastNameField.getText().isEmpty()) {
-                String fullName = firstNameField.getText() + " " + lastNameField.getText();
-                String dateStr = dobPicker.getValue() != null ? dobPicker.getValue().toString() : "";
-                UserData newUser = new UserData(
-                    fullName,
-                    idField.getText(),
-                    dateStr,
-                    positionCombo.getValue() != null ? positionCombo.getValue() : "Mahasiswa",
-                    "Aktif"
-                );
-                allData.add(newUser);
-                table.getItems().add(newUser);
+            if (firstNameField.getText().trim().isEmpty()
+                || lastNameField.getText().trim().isEmpty()
+                || dobPicker.getValue() == null
+                || pobField.getText().trim().isEmpty()
+                || positionCombo.getValue() == null) {
+
+                System.out.println("Field wajib belum diisi");
+                return;
+            }
+            String firstName = firstNameField.getText().trim();
+            String lastName = lastNameField.getText().trim();
+            String fullName = firstName + " " + lastName;
+            
+            String username = firstName.toLowerCase().replaceAll("\\s+", "") + (int)(Math.random()*1000);
+            java.sql.Date dob = java.sql.Date.valueOf(dobPicker.getValue());
+            String placeOfBirth = pobField.getText().trim();
+            
+            User user = new User();
+            user.setNama(fullName);
+            user.setUsername(username);
+            user.setPassword("12345");
+            user.setEmail(emailField.getText());
+            user.setPhone(phoneField.getText());
+            user.setBirth(dob);
+            user.setPlace(placeOfBirth);
+            user.setIdentity(idField.getText());
+            user.setRole(positionCombo.getValue());
+            user.setStatus("Aktif");
+            
+            UserAdminDAO dao = new UserAdminDAO();
+            boolean success = dao.insert(user);
+            
+            if(success){
+                allData = dao.getAll();
+                table.getItems().clear();
+                table.getItems().addAll(allData);
                 popup.close();
+            }
+            else{
+                System.out.println("Gagal Insert Data");
             }
         });
         
@@ -720,31 +764,5 @@ public class AdminUserPage extends BorderPane {
         }
         btn.setMaxWidth(Double.MAX_VALUE);
         return btn;
-    }
-
-    // Inner class for UserData
-    public static class UserData {
-        private String name;
-        private String id;
-        private String date;
-        private String position;
-        private String status;
-        private SimpleBooleanProperty selected = new SimpleBooleanProperty(false);
-        
-        public UserData(String name, String id, String date, String position, String status) {
-            this.name = name;
-            this.id = id;
-            this.date = date;
-            this.position = position;
-            this.status = status;
-        }
-        
-        public String getName() { return name; }
-        public String getId() { return id; }
-        public String getDate() { return date; }
-        public String getPosition() { return position; }
-        public String getStatus() { return status; }
-        public SimpleBooleanProperty selectedProperty() { return selected; }
-        public void setSelected(boolean value) { selected.set(value); }
     }
 }

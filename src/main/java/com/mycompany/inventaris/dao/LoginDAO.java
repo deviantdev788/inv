@@ -29,11 +29,17 @@ public class LoginDAO {
             if(rs.next()){
                 return new User(
                     rs.getInt("id_user"),
-                    rs.getString("nama"),
+                    rs.getString("name"),
                     rs.getString("username"),
                     rs.getString("password"),
+                    rs.getString("email"),
+                    rs.getString("phone"),
+                    rs.getString("birthPlace"),
+                    rs.getDate("birthDate"),
+                    rs.getString("identity_number"),
                     rs.getString("role"),
-                    rs.getString("status")
+                    rs.getString("status"),
+                    rs.getString("photo")
                 );
             }
         }catch(Exception e){
