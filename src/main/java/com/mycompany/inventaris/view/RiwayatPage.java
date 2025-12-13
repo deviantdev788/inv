@@ -13,6 +13,7 @@ import com.mycompany.inventaris.dao.RiwayatDAO;
 import com.mycompany.inventaris.dao.StatusDAO;
 import com.mycompany.inventaris.model.Riwayat;
 import com.mycompany.inventaris.model.User;
+import java.io.File;
 import java.text.SimpleDateFormat;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
@@ -248,7 +249,21 @@ public class RiwayatPage extends BorderPane {
         VBox logoBox = new VBox(logo);
         logoBox.setAlignment(Pos.TOP_LEFT);
 
-        Image userPhoto = new Image(getClass().getResourceAsStream("/assets/user.png"));
+        // USER PROFILE 
+        Image userPhoto;
+        if (user.getPhoto() != null && !user.getPhoto().isEmpty()
+                && new File(user.getPhoto()).exists()) {
+
+            userPhoto = new Image(
+                new File(user.getPhoto()).toURI().toString(),
+                false
+            );
+        }else {
+            // fallback kalau user belum upload foto
+            userPhoto = new Image(
+                getClass().getResourceAsStream("/assets/user.png")
+            );
+        }
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);
@@ -256,15 +271,8 @@ public class RiwayatPage extends BorderPane {
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        String fullName = user.getNama();
-        String[] parts = fullName.split(" ");
-        
-        String displayName = parts[0];
-        if(parts.length> 1){
-            displayName += " " + parts[1];
-        }
-        Label nameLabel = new Label(displayName.toUpperCase());        
-        nameLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
+        Label nameLabel = new Label(user.getNama());
+        nameLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         
         Label roleLabel = new Label(user.getRole().toUpperCase());
         roleLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #9ca3af;");

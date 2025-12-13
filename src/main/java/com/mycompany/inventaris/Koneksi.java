@@ -12,9 +12,9 @@ public class Koneksi {
     
     public static Connection getKoneksi(){
         if(connDb==null){
-            String url = "jdbc:mysql://localhost:3306/db_inventaris";
-            String username = "root";
-            String password = "";
+            String url = "jdbc:mysql://3.0.41.12:3306/db_inventaris";
+            String username = "inv";
+            String password = "kosong";
             
             try{
                 Class.forName("com.mysql.cj.jdbc.Driver");

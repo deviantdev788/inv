@@ -83,19 +83,8 @@ public class UserPage extends BorderPane {
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        String fullName = user.getNama();
-        String[] parts = fullName.split(" ");
-        
-        String displayName = parts[0];
-        if(parts.length> 1){
-            displayName += " " + parts[1];
-        }
-        Label nameLabel = new Label(displayName.toUpperCase());
-        nameLabel.setStyle(
-                "-fx-font-size: 14px;" +
-                "-fx-font-weight: bold;" +
-                "-fx-text-fill: #1e293b;"
-        );
+        Label nameLabel = new Label(user.getNama());
+        nameLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         
         Label roleLabel = new Label(user.getRole().toUpperCase());
         roleLabel.setStyle(
@@ -166,7 +155,7 @@ public class UserPage extends BorderPane {
         centerBox.setAlignment(Pos.CENTER);
         centerBox.setPadding(new Insets(60));
 
-        Label halo = new Label("HALO, " + fullName + " !!");
+        Label halo = new Label("HALO, " + user.getNama() + " !!");
         halo.setStyle(
                 "-fx-font-size: 40px;" +
                 "-fx-font-weight: bold;" +

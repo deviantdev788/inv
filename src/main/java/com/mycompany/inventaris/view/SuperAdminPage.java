@@ -13,10 +13,10 @@ import javafx.stage.Stage;
 
 public class SuperAdminPage extends BorderPane {
     
-    private User admin;
+    private User superadmin;
     
-    public SuperAdminPage(User admin) {
-        this.admin = admin;
+    public SuperAdminPage(User superadmin) {
+        this.superadmin = superadmin;
         initializeUI();
     }
 
@@ -33,7 +33,7 @@ public class SuperAdminPage extends BorderPane {
         centerBox.setPadding(new Insets(60));
 
         // Title
-        Label greeting = new Label("HALO, " + admin.getNama().toUpperCase() + "!!");
+        Label greeting = new Label("HALO, " + superadmin.getNama().toUpperCase() + "!!");
         greeting.setStyle(
             "-fx-font-size: 48px; " +
             "-fx-font-weight: bold; " +
@@ -114,13 +114,17 @@ public class SuperAdminPage extends BorderPane {
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        Label nameLabel = new Label(admin.getNama());
+        Label nameLabel = new Label(superadmin.getNama());
         nameLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         
-        Label emailLabel = new Label(admin.getRole());
-        emailLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #9ca3af;");
+        Label roleLabel = new Label(superadmin.getRole().toUpperCase());
+        roleLabel.setStyle(
+                "-fx-font-size: 10px;" +
+                "-fx-text-fill: #9ca3af;" +
+                "-fx-font-weight: normal;"
+        );
 
-        VBox textBox = new VBox(2, nameLabel, emailLabel);
+        VBox textBox = new VBox(2, nameLabel, roleLabel);
         textBox.setAlignment(Pos.CENTER_LEFT);
         HBox userBox = new HBox(10, userImage, textBox);
         userBox.setAlignment(Pos.CENTER_LEFT);
@@ -129,8 +133,6 @@ public class SuperAdminPage extends BorderPane {
         VBox menuBox = new VBox(8);
         Button dashboardBtn = createMenuButton("🏠  Dashboard", true);
         Button userBtn = createMenuButton("👤  User", false);
-        Button pembelianBtn = createMenuButton("🛒  Pembelian", false);
-        Button kartuStockBtn = createMenuButton("📋  Kartu Stock", false);
         Button manageDataBtn = createMenuButton("⚙  Manage Data", false);
         
         // Submenu Laporan (collapsed by default)
@@ -140,7 +142,6 @@ public class SuperAdminPage extends BorderPane {
         laporanSubmenu.setPadding(new Insets(0, 0, 0, 25));
         
         Button laporanBtn = createMenuButton("📊  Laporan ▼", false);
-        Button specialRequestBtn = createMenuButton("❗ Special Request", false);
 
         // Toggle laporan submenu
         laporanBtn.setOnAction(e -> {
@@ -153,25 +154,22 @@ public class SuperAdminPage extends BorderPane {
         // Navigation handlers
         userBtn.setOnAction(e -> {
             Stage currentStage = (Stage) userBtn.getScene().getWindow();
-            Scene newScene = new Scene(new AdminUserPage(admin), 1280, 720);
+            Scene newScene = new Scene(new AdminUserPage(superadmin), 1280, 720);
             currentStage.setScene(newScene);
         });
-
-        kartuStockBtn.setOnAction(e -> {
-            Stage currentStage = (Stage) kartuStockBtn.getScene().getWindow();
-            Scene newScene = new Scene(new AdminKartuStockPage(admin), 1280, 720);
+       
+        manageDataBtn.setOnAction(e -> {
+            Stage currentStage = (Stage) manageDataBtn.getScene().getWindow();
+            Scene newScene = new Scene(new ManageDataPageSuperadmin(superadmin), 1280, 720);
             currentStage.setScene(newScene);
         });
 
         menuBox.getChildren().addAll(
             dashboardBtn, 
             userBtn, 
-            pembelianBtn, 
-            kartuStockBtn, 
             manageDataBtn, 
             laporanBtn, 
-            laporanSubmenu,
-            specialRequestBtn
+            laporanSubmenu
         );
 
         Region spacer = new Region();

@@ -28,17 +28,17 @@ import javafx.stage.Stage;
 public class AdminPage extends BorderPane {
 
     private Stage stage;
-    private User user;
+    private User admin;
     
-    public AdminPage(User user){
-        this.user = user;
+    public AdminPage(User admin){
+        this.admin = admin;
         initializeUI();
     }
     
     private void initializeUI() {
 
         // ===================== SIDEBAR =====================
-        VBox sidebar = new VBox(10);
+        VBox sidebar = new VBox(15);
         sidebar.setPadding(new Insets(20, 10, 20, 10));
         sidebar.setAlignment(Pos.TOP_LEFT);
         sidebar.setPrefWidth(200);
@@ -68,25 +68,13 @@ public class AdminPage extends BorderPane {
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);
         userImage.setPreserveRatio(true);
-
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        String fullName = user.getNama();
-        String[] parts = fullName.split(" ");
+        Label nameLabel = new Label(admin.getNama());
+        nameLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         
-        String displayName = parts[0];
-        if(parts.length> 1){
-            displayName += " " + parts[1];
-        }
-        Label nameLabel = new Label(displayName.toUpperCase());
-        nameLabel.setStyle(
-                "-fx-font-size: 14px;" +
-                "-fx-font-weight: bold;" +
-                "-fx-text-fill: #1e293b;"
-        );
-        
-        Label roleLabel = new Label(user.getRole().toUpperCase());
+        Label roleLabel = new Label(admin.getRole().toUpperCase());
         roleLabel.setStyle(
                 "-fx-font-size: 10px;" +
                 "-fx-text-fill: #9ca3af;" +
@@ -103,39 +91,40 @@ public class AdminPage extends BorderPane {
 
         // ===================== MENU =====================
         VBox menuBox = new VBox(8);
-        menuBox.setAlignment(Pos.TOP_CENTER);
 
         Button dashboardBtn = createMenuButton("🏠  Dashboard", true);
-        Button pembelianBtn = createMenuButton("📊  Pembelian", false);
-        Button stockBtn = createMenuButton("🕐  Kartu Stock", false);
-
-        pembelianBtn.setOnAction(e -> {
-            Scene newScene = new Scene(new StatusPage(user), 1280, 720);
-            Stage currentStage = (Stage) pembelianBtn.getScene().getWindow();
+        Button verifikasiBtn = createMenuButton("✓  Verifikasi", false);
+        Button manageDataBtn = createMenuButton("⚙  Manage Data", false);
+        Button laporanBtn = createMenuButton("📊  Laporan ▼", false);
+              
+        verifikasiBtn.setOnAction(e -> {
+            Stage currentStage = (Stage) verifikasiBtn.getScene().getWindow();
+            Scene newScene = new Scene(new VerifikasiPage(admin), 1280, 720);
             currentStage.setScene(newScene);
         });
         
-        stockBtn.setOnAction(e -> {
-            Scene newScene = new Scene(new RiwayatPage(user), 1280, 720);
-            Stage currentStage = (Stage) stockBtn.getScene().getWindow();
+        manageDataBtn.setOnAction(e -> {
+            Stage currentStage = (Stage) manageDataBtn.getScene().getWindow();
+            Scene newScene = new Scene(new ManageDataPageAdmin(admin), 1280, 720);
             currentStage.setScene(newScene);
         });
-
-        menuBox.getChildren().addAll(dashboardBtn, pembelianBtn, stockBtn);
+        
+       
+        menuBox.getChildren().addAll(dashboardBtn, verifikasiBtn, manageDataBtn, laporanBtn);
 
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        Button logoutBtn = new Button("↩ Logout");
+        Button logoutBtn = new Button("↩  Logout");
         logoutBtn.setAlignment(Pos.CENTER_LEFT);
         logoutBtn.setStyle(
-                "-fx-background-color: transparent;" +
-                "-fx-font-size: 13px;" +
-                "-fx-text-fill: #475569;" +
-                "-fx-padding: 12 10;" +
-                "-fx-font-weight: bold;" +
-                "-fx-cursor: hand;"
+            "-fx-background-color: transparent; " +
+            "-fx-font-size: 13px; " +
+            "-fx-text-fill: #475569; " +
+            "-fx-padding: 12 10; " +
+            "-fx-font-weight: bold; " +
+            "-fx-cursor: hand;"
         );
         logoutBtn.setOnAction(e -> {
             Stage currentStage = (Stage) logoutBtn.getScene().getWindow();
@@ -153,7 +142,7 @@ public class AdminPage extends BorderPane {
         centerBox.setAlignment(Pos.CENTER);
         centerBox.setPadding(new Insets(60));
 
-        Label halo = new Label("Halo, " + fullName + " !!");
+        Label halo = new Label("Halo, " + admin.getNama() + " !!");
         halo.setStyle(
             "-fx-font-size: 40px;" +
             "-fx-font-weight: bold;" +

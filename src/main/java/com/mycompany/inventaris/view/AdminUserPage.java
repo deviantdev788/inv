@@ -26,10 +26,10 @@ public class AdminUserPage extends BorderPane {
     
     private TableView<User> table;
     private List<User> allData;
-    private User admin;
+    private User superadmin;
     
-    public AdminUserPage(User admin) {
-        this.admin = admin;
+    public AdminUserPage(User superadmin) {
+        this.superadmin = superadmin;
         UserAdminDAO userAdminDAO = new UserAdminDAO();
         allData = userAdminDAO.getAll();
         initializeUI();
@@ -353,7 +353,7 @@ public class AdminUserPage extends BorderPane {
         MenuItem deleteItem = new MenuItem("Delete");
         MenuItem viewItem = new MenuItem("View Details");
         
-        editItem.setOnAction(e -> System.out.println("Edit: " + user.getNama()));
+        editItem.setOnAction(e -> showEditForm(user));
         deleteItem.setOnAction(e -> {
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
             confirm.setTitle("Delete User");
@@ -377,12 +377,87 @@ public class AdminUserPage extends BorderPane {
                 }
             });
         });
-        viewItem.setOnAction(e -> System.out.println("View: " + user.getNama()));
+        viewItem.setOnAction(e -> showUserDetail(user));
         
         contextMenu.getItems().addAll(viewItem, editItem, deleteItem);
         contextMenu.show(sourceBtn, javafx.geometry.Side.BOTTOM, 0, 0);
     }
+    
+    private void showUserDetail(User user) {
+    Stage detailPopup = new Stage();
+    detailPopup.initModality(Modality.APPLICATION_MODAL);
+    detailPopup.setTitle("User Details");
 
+    VBox box = new VBox(15);
+    box.setPadding(new Insets(25));
+
+    box.getChildren().addAll(
+        new Label("Name : " + user.getNama()),
+        new Label("Email : " + user.getEmail()),
+        new Label("Phone : " + user.getPhone()),
+        new Label("Role : " + user.getRole()),
+        new Label("Status : " + user.getStatus()),
+        new Label("ID Number : " + user.getIdentity())
+    );
+
+    Button close = new Button("Close");
+    close.setOnAction(e -> detailPopup.close());
+    box.getChildren().add(close);
+
+    Scene scene = new Scene(box, 350, 300);
+    detailPopup.setScene(scene);
+    detailPopup.show();
+}
+
+    private void showEditForm(User user) {
+    Stage editPopup = new Stage();
+    editPopup.initModality(Modality.APPLICATION_MODAL);
+    editPopup.setTitle("Edit User");
+
+    VBox box = new VBox(15);
+    box.setPadding(new Insets(25));
+
+    TextField nameField = new TextField(user.getNama());
+    TextField emailField = new TextField(user.getEmail());
+    TextField phoneField = new TextField(user.getPhone());
+
+    ComboBox<String> roleBox = new ComboBox<>();
+    roleBox.getItems().addAll("Mahasiswa", "Dosen", "Admin", "Petugas");
+    roleBox.setValue(user.getRole());
+
+    ComboBox<String> statusBox = new ComboBox<>();
+    statusBox.getItems().addAll("Aktif", "Nonaktif");
+    statusBox.setValue(user.getStatus());
+
+    Button save = new Button("Save");
+    save.setOnAction(e -> {
+        user.setNama(nameField.getText());
+        user.setEmail(emailField.getText());
+        user.setPhone(phoneField.getText());
+        user.setRole(roleBox.getValue());
+        user.setStatus(statusBox.getValue());
+
+        new UserAdminDAO().update(user);
+        table.refresh();
+        editPopup.close();
+    });
+
+    Button cancel = new Button("Cancel");
+    cancel.setOnAction(e -> editPopup.close());
+
+    box.getChildren().addAll(
+        new Label("Edit User"),
+        nameField, emailField, phoneField,
+        roleBox, statusBox,
+        new HBox(10, save, cancel)
+    );
+
+    Scene scene = new Scene(box, 350, 350);
+    editPopup.setScene(scene);
+    editPopup.show();
+}
+
+    
     private void showAddUserForm() {
         Stage popup = new Stage();
         popup.initModality(Modality.APPLICATION_MODAL);
@@ -442,7 +517,13 @@ public class AdminUserPage extends BorderPane {
         uploadText.setWrapText(true);
         
         final File[] selectedPhoto = new File[1];
-        uploadArea.getChildren().add(uploadText);
+        ImageView preview = new ImageView();
+        preview.setFitWidth(120);
+        preview.setFitHeight(120);
+        preview.setPreserveRatio(true);
+        preview.setVisible(false);
+
+        uploadArea.getChildren().addAll(preview, uploadText);
         uploadArea.setOnMouseClicked(e -> {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Select Photo");
@@ -452,8 +533,14 @@ public class AdminUserPage extends BorderPane {
             File file = fileChooser.showOpenDialog(popup);
             if (file != null) {
                 selectedPhoto[0] = file;
-                uploadText.setText("Selected:\n" + file.getName());
+
+                Image img = new Image(file.toURI().toString());
+                preview.setImage(img);
+                preview.setVisible(true);
+
+                uploadText.setText(file.getName());
             }
+
         });
         
         photoBox.getChildren().addAll(photoLabel, uploadArea);
@@ -552,21 +639,7 @@ public class AdminUserPage extends BorderPane {
         // Buttons
         HBox buttonBox = new HBox(15);
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
-        
-        Button draftBtn = new Button("Save as Draft");
-        draftBtn.setStyle(
-            "-fx-background-color: white; " +
-            "-fx-border-color: #3C4C79; " +
-            "-fx-border-width: 2; " +
-            "-fx-text-fill: #3C4C79; " +
-            "-fx-padding: 10 25; " +
-            "-fx-background-radius: 20; " +
-            "-fx-border-radius: 20; " +
-            "-fx-font-size: 13px; " +
-            "-fx-font-weight: bold; " +
-            "-fx-cursor: hand;"
-        );
-        
+             
         Button submitBtn = new Button("Submit");
         submitBtn.setStyle(
             "-fx-background-color: #3C4C79; " +
@@ -626,7 +699,7 @@ public class AdminUserPage extends BorderPane {
             }
         });
         
-        buttonBox.getChildren().addAll(draftBtn, submitBtn);
+        buttonBox.getChildren().addAll(submitBtn);
 
         VBox formContainer = new VBox(0);
         formContainer.getChildren().addAll(sectionTitle, formBox);
@@ -685,13 +758,17 @@ public class AdminUserPage extends BorderPane {
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        Label nameLabel = new Label(admin.getNama());
+        Label nameLabel = new Label(superadmin.getNama());
         nameLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         
-        Label emailLabel = new Label("nadia@gmail.com");
-        emailLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #9ca3af;");
+        Label roleLabel = new Label(superadmin.getRole().toUpperCase());
+        roleLabel.setStyle(
+                "-fx-font-size: 10px;" +
+                "-fx-text-fill: #9ca3af;" +
+                "-fx-font-weight: normal;"
+        );
 
-        VBox textBox = new VBox(2, nameLabel, emailLabel);
+        VBox textBox = new VBox(2, nameLabel, roleLabel);
         textBox.setAlignment(Pos.CENTER_LEFT);
         HBox userBox = new HBox(10, userImage, textBox);
         userBox.setAlignment(Pos.CENTER_LEFT);
@@ -700,25 +777,22 @@ public class AdminUserPage extends BorderPane {
         VBox menuBox = new VBox(8);
         Button dashboardBtn = createMenuButton("🏠  Dashboard", false);
         Button userBtn = createMenuButton("👤  User", true);
-        Button pembelianBtn = createMenuButton("🛒  Pembelian", false);
-        Button kartuStockBtn = createMenuButton("📋  Kartu Stock", false);
         Button manageDataBtn = createMenuButton("⚙  Manage Data", false);
         Button laporanBtn = createMenuButton("📊  Laporan ▼", false);
-        Button specialRequestBtn = createMenuButton("❗ Special Request", false);
 
         dashboardBtn.setOnAction(e -> {
             Stage currentStage = (Stage) dashboardBtn.getScene().getWindow();
-            Scene newScene = new Scene(new SuperAdminPage(admin), 1280, 720);
+            Scene newScene = new Scene(new SuperAdminPage(superadmin), 1280, 720);
+            currentStage.setScene(newScene);
+        });
+        
+        manageDataBtn.setOnAction(e -> {
+            Stage currentStage = (Stage) manageDataBtn.getScene().getWindow();
+            Scene newScene = new Scene(new ManageDataPageSuperadmin(superadmin), 1280, 720);
             currentStage.setScene(newScene);
         });
 
-        kartuStockBtn.setOnAction(e -> {
-            Stage currentStage = (Stage) kartuStockBtn.getScene().getWindow();
-            Scene newScene = new Scene(new AdminKartuStockPage(admin), 1280, 720);
-            currentStage.setScene(newScene);
-        });
-
-        menuBox.getChildren().addAll(dashboardBtn, userBtn, pembelianBtn, kartuStockBtn, manageDataBtn, laporanBtn, specialRequestBtn);
+        menuBox.getChildren().addAll(dashboardBtn, userBtn, manageDataBtn, laporanBtn);
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);

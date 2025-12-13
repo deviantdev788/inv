@@ -32,6 +32,8 @@ import javafx.stage.StageStyle;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import javafx.application.Platform;
+import javafx.scene.Node;
 
 public class PeminjamanBarangPage extends BorderPane {
 
@@ -48,28 +50,22 @@ public class PeminjamanBarangPage extends BorderPane {
         peminjamanDAO = new PeminjamanDAO();
         this.user = user;
         initializeUI();
-        this.sceneProperty().addListener((observable, oldScene, newScene) -> {
-         if (newScene != null) {
-        javafx.application.Platform.runLater(() -> {
-            javafx.scene.Node headerBg = table.lookup(".column-header-background");
-            if (headerBg != null) {
-                headerBg.setStyle("-fx-background-color: #B71C1C;");
-            }
-            
-            // Style setiap column header
-            table.lookupAll(".column-header").forEach(node -> {
-                node.setStyle("-fx-background-color: #B71C1C;");
-            });
-            table.lookupAll(".column-header > .label").forEach(node -> {
-                node.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
-            });
-            javafx.scene.Node filler = table.lookup(".filler");
-            if (filler != null) {
-                filler.setStyle("-fx-background-color: #B71C1C;");
-            }
+            Platform.runLater(() -> {
+        Node headerBg = table.lookup(".column-header-background");
+        if (headerBg != null) headerBg.setStyle("-fx-background-color: #B71C1C;");
+
+        table.lookupAll(".column-header").forEach(node -> {
+            node.setStyle("-fx-background-color: #B71C1C;");
         });
-    }
-});
+
+        table.lookupAll(".column-header > .label").forEach(node -> {
+            node.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+        });
+
+        Node filler = table.lookup(".filler");
+        if (filler != null) filler.setStyle("-fx-background-color: #B71C1C;");
+    });
+
     }
 
     private void initializeUI() {
@@ -623,23 +619,7 @@ public class PeminjamanBarangPage extends BorderPane {
             currentStage.setScene(newScene);
         });
 
-        Button statusBtn = new Button("Lihat Status Barang");
-        statusBtn.setStyle(
-            "-fx-background-color: #dc2626; " +
-            "-fx-text-fill: white; " +
-            "-fx-padding: 10 25; " +
-            "-fx-background-radius: 20; " +
-            "-fx-font-size: 12px; " +
-            "-fx-font-weight: bold; " +
-            "-fx-cursor: hand;"
-        );
-        statusBtn.setOnAction(e -> {
-            Scene newScene = new Scene(new StatusPage(user), 1280, 720);
-            Stage currentStage = (Stage) statusBtn.getScene().getWindow();
-            currentStage.setScene(newScene);
-        });
-
-        HBox btnBox = new HBox(15, okBtn, statusBtn);
+        HBox btnBox = new HBox(15, okBtn);
         btnBox.setAlignment(Pos.CENTER);
 
         container.getChildren().addAll(icon, title, message, btnBox);
