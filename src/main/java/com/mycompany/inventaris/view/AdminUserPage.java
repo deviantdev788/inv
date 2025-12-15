@@ -1,8 +1,16 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package com.mycompany.inventaris.view;
+
+/**
+ *
+ * @author Amy
+ */
 
 import com.mycompany.inventaris.dao.UserAdminDAO;
 import com.mycompany.inventaris.model.User;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -162,7 +170,7 @@ public class AdminUserPage extends BorderPane {
         positionCol.setMinWidth(130);
         positionCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRole()));
 
-        // Contact column with email icon
+        // Contact column
         TableColumn<User, String> contactCol = new TableColumn<>("Contact");
         contactCol.setMinWidth(100);
         contactCol.setCellFactory(col -> new TableCell<>() {
@@ -490,11 +498,11 @@ public class AdminUserPage extends BorderPane {
             "-fx-border-radius: 0 0 8 8;"
         );
 
-        // Form fields - LAYOUT HORIZONTAL
+        // Form fields
         HBox photoAndNameRow = new HBox(20);
         photoAndNameRow.setAlignment(Pos.TOP_LEFT);
         
-        // Photo upload (left side)
+        // Photo upload
         VBox photoBox = new VBox(8);
         Label photoLabel = new Label("Photo *");
         photoLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
@@ -545,7 +553,7 @@ public class AdminUserPage extends BorderPane {
         
         photoBox.getChildren().addAll(photoLabel, uploadArea);
         
-        // Name fields (right side of photo)
+        // Name fields
         VBox nameFields = new VBox(15);
         HBox.setHgrow(nameFields, Priority.ALWAYS);
         
@@ -564,7 +572,7 @@ public class AdminUserPage extends BorderPane {
         lastNameBox.getChildren().addAll(createFieldLabel("Last Name *"), lastNameField);
         nameRow.getChildren().addAll(firstNameBox, lastNameBox);
         
-        // Date & Place of Birth (HORIZONTAL) dan ID Row
+        // Date & Place of Birth
         HBox dateIdRow = new HBox(15);
         VBox dateAndPlaceBox = new VBox(5);
         VBox idBox = new VBox(5);
@@ -573,7 +581,7 @@ public class AdminUserPage extends BorderPane {
         
         Label dateAndPlaceLabel = createFieldLabel("Date & Place of Birth *");
         
-        // Date dan Place HORIZONTAL (sejajar)
+        // Date dan Place HORIZONTAL
         HBox dateAndPlaceFields = new HBox(10);
         
         DatePicker dobPicker = new DatePicker();
@@ -609,7 +617,7 @@ public class AdminUserPage extends BorderPane {
         phoneBox.getChildren().addAll(createFieldLabel("Phone *"), phoneField);
         contactRow.getChildren().addAll(emailBox, phoneBox);
         
-        // Position - SETENGAH LEBAR
+        // Position
         HBox positionRow = new HBox(15);
         VBox positionBox = new VBox(5);
         Region positionSpacer = new Region();
@@ -750,7 +758,20 @@ public class AdminUserPage extends BorderPane {
         VBox logoBox = new VBox(logo);
         logoBox.setAlignment(Pos.TOP_LEFT);
 
-        Image userPhoto = new Image(getClass().getResourceAsStream("/assets/user.png"));
+        Image userPhoto;
+        if (superadmin.getPhoto() != null && !superadmin.getPhoto().isEmpty()
+                && new File(superadmin.getPhoto()).exists()) {
+
+            userPhoto = new Image(
+                new File(superadmin.getPhoto()).toURI().toString(),
+                false
+            );
+        }else {
+            // fallback kalau user belum upload foto
+            userPhoto = new Image(
+                getClass().getResourceAsStream("/assets/user.png")
+            );
+        }
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);
@@ -778,7 +799,20 @@ public class AdminUserPage extends BorderPane {
         Button dashboardBtn = createMenuButton("🏠  Dashboard", false);
         Button userBtn = createMenuButton("👤  User", true);
         Button manageDataBtn = createMenuButton("⚙  Manage Data", false);
+        Button auditTrailBtn = createMenuButton("📜  Audit Trail", false);
         Button laporanBtn = createMenuButton("📊  Laporan ▼", false);
+        
+        // Submenu Laporan
+        VBox laporanSubMenu = new VBox(5);
+        laporanSubMenu.setPadding(new Insets(0, 0, 0, 20));
+        laporanSubMenu.setVisible(false);
+        laporanSubMenu.setManaged(false);
+
+        Button laporanPinjamBtn =
+                createMenuButton("Laporan Peminjaman", false);
+
+        Button laporanGunaBtn =
+                createMenuButton("Laporan Penggunaan", false);
 
         dashboardBtn.setOnAction(e -> {
             Stage currentStage = (Stage) dashboardBtn.getScene().getWindow();
@@ -788,11 +822,41 @@ public class AdminUserPage extends BorderPane {
         
         manageDataBtn.setOnAction(e -> {
             Stage currentStage = (Stage) manageDataBtn.getScene().getWindow();
-            Scene newScene = new Scene(new ManageDataPageSuperadmin(superadmin), 1280, 720);
+            Scene newScene = new Scene(new ManageDataPage(superadmin), 1280, 720);
             currentStage.setScene(newScene);
         });
+        
+        auditTrailBtn.setOnAction(e -> {
+            Stage currentStage = (Stage) auditTrailBtn.getScene().getWindow();
+            Scene newScene = new Scene(new AuditTrailPage(superadmin), 1280, 720);
+            currentStage.setScene(newScene);
+        });
+        
+        laporanPinjamBtn.setOnAction(e -> {
+            Stage s = (Stage) laporanBtn.getScene().getWindow();
+            s.setScene(new Scene(new LaporanPeminjamanPage(superadmin), 1280, 720));
+        });
 
-        menuBox.getChildren().addAll(dashboardBtn, userBtn, manageDataBtn, laporanBtn);
+        laporanGunaBtn.setOnAction(e -> {
+            Stage s = (Stage) laporanGunaBtn.getScene().getWindow();
+            s.setScene(new Scene(new LaporanPenggunaanPage(superadmin), 1280, 720));
+        });
+        
+        // TOGGLE LAPORAN ▼ ▲
+        laporanBtn.setOnAction(e -> {
+            boolean open = laporanSubMenu.isVisible();
+            laporanSubMenu.setVisible(!open);
+            laporanSubMenu.setManaged(!open);
+            laporanBtn.setText(open ? "📊  Laporan ▼" : "📊  Laporan ▲");
+        });
+
+        // MASUKKAN SUBMENU
+        laporanSubMenu.getChildren().addAll(
+                laporanPinjamBtn,
+                laporanGunaBtn
+        );
+
+        menuBox.getChildren().addAll(dashboardBtn, userBtn, manageDataBtn, auditTrailBtn, laporanBtn, laporanSubMenu);
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
@@ -819,30 +883,37 @@ public class AdminUserPage extends BorderPane {
 
     private Button createMenuButton(String text, boolean isActive) {
         Button btn = new Button(text);
+        
+        btn.setWrapText(true);
+        btn.setTextAlignment(javafx.scene.text.TextAlignment.LEFT);
+        btn.setAlignment(Pos.CENTER_LEFT);
+        btn.setMaxWidth(Double.MAX_VALUE);
+        btn.setPrefHeight(Region.USE_COMPUTED_SIZE);
+    
         if (isActive) {
             btn.setStyle(
-                "-fx-background-color: rgba(164,35,35,0.10); " +
-                "-fx-font-weight: bold; " +
-                "-fx-text-fill: #111827; " +
-                "-fx-padding: 10 15; " +
-                "-fx-background-radius: 6; " +
-                "-fx-font-size: 13px; " +
-                "-fx-alignment: center-left; " +
-                "-fx-cursor: hand;"
+                    "-fx-background-color: rgba(164,35,35,0.10);" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-text-fill: #111827;" +
+                    "-fx-padding: 10 15;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-font-size: 13px;" +
+                    "-fx-alignment: center-left;" +
+                    "-fx-cursor: hand;"
             );
         } else {
             btn.setStyle(
-                "-fx-background-color: transparent; " +
-                "-fx-font-size: 13px; " +
-                "-fx-text-fill: #475569; " +
-                "-fx-padding: 10 15; " +
-                "-fx-font-weight: bold; " +
-                "-fx-alignment: center-left; " +
-                "-fx-background-radius: 6; " +
-                "-fx-cursor: hand;"
+                    "-fx-background-color: transparent;" +
+                    "-fx-font-size: 13px;" +
+                    "-fx-text-fill: #475569;" +
+                    "-fx-padding: 10 15;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-alignment: center-left;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-cursor: hand;"
             );
         }
-        btn.setMaxWidth(Double.MAX_VALUE);
+
         return btn;
     }
 }

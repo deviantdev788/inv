@@ -14,6 +14,7 @@ import com.mycompany.inventaris.dao.PengembalianDAO;
 import com.mycompany.inventaris.model.Peminjaman;
 import com.mycompany.inventaris.model.Pengembalian;
 import com.mycompany.inventaris.model.User;
+import java.io.File;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -259,7 +260,20 @@ public class PengembalianBarangPage extends BorderPane {
         VBox logoBox = new VBox(logo);
         logoBox.setAlignment(Pos.TOP_LEFT);
 
-        Image userPhoto = new Image(getClass().getResourceAsStream("/assets/user.png"));
+        Image userPhoto;
+        if (user.getPhoto() != null && !user.getPhoto().isEmpty()
+                && new File(user.getPhoto()).exists()) {
+
+            userPhoto = new Image(
+                new File(user.getPhoto()).toURI().toString(),
+                false
+            );
+        }else {
+            // fallback kalau user belum upload foto
+            userPhoto = new Image(
+                getClass().getResourceAsStream("/assets/user.png")
+            );
+        }
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);

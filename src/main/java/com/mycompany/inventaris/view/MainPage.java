@@ -75,18 +75,6 @@ public class MainPage extends StackPane {
         logo.setPreserveRatio(true);
         navbar.setLeft(logo);
 
-        // MENU (tengah)
-        HBox menu = new HBox(
-            new Label("Home"),
-            new Label("About"),
-            new Label("Guide"),
-            new Label("Contact")
-        );
-        menu.setSpacing(40);
-        menu.setStyle("-fx-font-size: 16px; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-padding: 0 0 0 300; -fx-font-family: 'Poppins';");
-        menu.setAlignment(Pos.CENTER);
-        navbar.setCenter(menu);
-
         // Text Kiri
         Label title = new Label("Sistem Inventaris Barang Kampus");
         title.setStyle(
@@ -102,28 +90,23 @@ public class MainPage extends StackPane {
         );
         subtitle.setLineSpacing(4);
 
-        Button userBtn = new Button("User");
-        userBtn.setStyle(
-            "-fx-background-color: #A42323; -fx-text-fill: white; -fx-padding: 10 38; -fx-background-radius: 20; -fx-font-family: 'Poppins';"
+        Button loginBtn = new Button("Masuk ke Sistem");
+        loginBtn.setStyle(
+            "-fx-background-color: #A42323; " +
+            "-fx-text-fill: white; " +
+            "-fx-padding: 12 40; " +
+            "-fx-background-radius: 20; " +
+            "-fx-font-size: 15px; " +
+            "-fx-font-weight: bold; " +
+            "-fx-font-family: 'Poppins'; " +
+            "-fx-cursor: hand;"
         );
-        userBtn.setOnAction(e -> {
+        loginBtn.setOnAction(e -> {
             Scene newScene = new Scene(new LoginPage(stage), 1280, 720);
             stage.setScene(newScene);
         });
 
-        Button adminBtn = new Button("Admin");
-        adminBtn.setStyle(
-            "-fx-background-color: #2C3A63; -fx-text-fill: white; -fx-padding: 10 38; -fx-background-radius: 20; -fx-font-family: 'Poppins';"
-        );
-        adminBtn.setOnAction(e -> {
-            Scene newScene = new Scene(new LoginPage(stage), 1280, 720);
-            stage.setScene(newScene);
-        });
-
-        HBox buttons = new HBox(userBtn, adminBtn);
-        buttons.setSpacing(20);
-
-        VBox leftContent = new VBox(title, subtitle, buttons);
+        VBox leftContent = new VBox(title, subtitle, loginBtn);
         leftContent.setSpacing(25);
         leftContent.setAlignment(Pos.CENTER_LEFT);
 

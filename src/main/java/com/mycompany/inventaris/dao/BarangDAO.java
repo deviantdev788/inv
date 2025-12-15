@@ -42,6 +42,32 @@ public class BarangDAO {
       return list;
     }
   
+  public static boolean insertBarang(Barang barang) {
+    String sql = "INSERT INTO barang " +
+                 "(kode_barang, nama_barang, kategori, stok, kondisi, lokasi, `status`) " +
+                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+    try {
+        Connection conn = Koneksi.getKoneksi();
+        var ps = conn.prepareStatement(sql);
+
+        ps.setString(1, barang.getKode());
+        ps.setString(2, barang.getNama());
+        ps.setString(3, barang.getKategori());
+        ps.setInt(4, barang.getStok());
+        ps.setString(5, barang.getKondisi());
+        ps.setString(6, barang.getLokasi());
+        ps.setString(7, barang.getStatus());
+
+        return ps.executeUpdate() > 0;
+
+    } catch (Exception e) {
+        System.out.println("Insert Barang Error: " + e.getMessage());
+        return false;
+    }
+}
+
+  
     //UPDATE BARANG
     public static boolean reduceStok(int idBarang, int jumlah) {
     String sql = "UPDATE barang SET stok = stok - ? WHERE id_barang = ? AND CAST(stok AS UNSIGNED) >= ?";

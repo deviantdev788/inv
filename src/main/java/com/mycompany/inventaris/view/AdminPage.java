@@ -4,7 +4,13 @@
  */
 package com.mycompany.inventaris.view;
 
+/**
+ *
+ * @author Amy
+ */
+
 import com.mycompany.inventaris.model.User;
+import java.io.File;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -21,10 +27,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 
-/**
- *
- * @author pnady
- */
 public class AdminPage extends BorderPane {
 
     private Stage stage;
@@ -37,7 +39,7 @@ public class AdminPage extends BorderPane {
     
     private void initializeUI() {
 
-        // ===================== SIDEBAR =====================
+        // SIDEBAR
         VBox sidebar = new VBox(15);
         sidebar.setPadding(new Insets(20, 10, 20, 10));
         sidebar.setAlignment(Pos.TOP_LEFT);
@@ -62,8 +64,21 @@ public class AdminPage extends BorderPane {
         logoBox.setPadding(new Insets(0,0,0,0));
 
 
-        // ===================== USER PROFILE =====================
-        Image userPhoto = new Image(getClass().getResourceAsStream("/assets/user.png"));
+        // USER PROFILE
+        Image userPhoto;
+        if (admin.getPhoto() != null && !admin.getPhoto().isEmpty()
+                && new File(admin.getPhoto()).exists()) {
+
+            userPhoto = new Image(
+                new File(admin.getPhoto()).toURI().toString(),
+                false
+            );
+        }else {
+            // fallback kalau user belum upload foto
+            userPhoto = new Image(
+                getClass().getResourceAsStream("/assets/user.png")
+            );
+        }
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);
@@ -89,28 +104,71 @@ public class AdminPage extends BorderPane {
         userBox.setPadding(new Insets(10, 10, 20, 10));
 
 
-        // ===================== MENU =====================
+        // MENU
         VBox menuBox = new VBox(8);
 
+        // MAIN MENU
         Button dashboardBtn = createMenuButton("🏠  Dashboard", true);
         Button verifikasiBtn = createMenuButton("✓  Verifikasi", false);
         Button manageDataBtn = createMenuButton("⚙  Manage Data", false);
         Button laporanBtn = createMenuButton("📊  Laporan ▼", false);
-              
+
+        // SUB MENU LAPORAN
+        VBox laporanSubMenu = new VBox(5);
+        laporanSubMenu.setPadding(new Insets(0, 0, 0, 20));
+        laporanSubMenu.setVisible(false);
+        laporanSubMenu.setManaged(false);
+
+        Button laporanPinjamBtn =
+                createMenuButton("Laporan Peminjaman", false);
+
+        Button laporanGunaBtn =
+                createMenuButton("Laporan Penggunaan", false);
+
+        // ACTION
         verifikasiBtn.setOnAction(e -> {
-            Stage currentStage = (Stage) verifikasiBtn.getScene().getWindow();
-            Scene newScene = new Scene(new VerifikasiPage(admin), 1280, 720);
-            currentStage.setScene(newScene);
+            Stage s = (Stage) verifikasiBtn.getScene().getWindow();
+            s.setScene(new Scene(new VerifikasiPage(admin), 1280, 720));
         });
-        
+
         manageDataBtn.setOnAction(e -> {
-            Stage currentStage = (Stage) manageDataBtn.getScene().getWindow();
-            Scene newScene = new Scene(new ManageDataPageAdmin(admin), 1280, 720);
-            currentStage.setScene(newScene);
+            Stage s = (Stage) manageDataBtn.getScene().getWindow();
+            s.setScene(new Scene(new ManageDataPage(admin), 1280, 720));
         });
-        
-       
-        menuBox.getChildren().addAll(dashboardBtn, verifikasiBtn, manageDataBtn, laporanBtn);
+
+        laporanPinjamBtn.setOnAction(e -> {
+            Stage s = (Stage) laporanBtn.getScene().getWindow();
+            s.setScene(new Scene(new LaporanPeminjamanPage(admin), 1280, 720));
+        });
+
+        laporanGunaBtn.setOnAction(e -> {
+            Stage s = (Stage) laporanGunaBtn.getScene().getWindow();
+            s.setScene(new Scene(new LaporanPenggunaanPage(admin), 1280, 720));
+        });
+
+        // TOGGLE LAPORAN ▼ ▲
+        laporanBtn.setOnAction(e -> {
+            boolean open = laporanSubMenu.isVisible();
+            laporanSubMenu.setVisible(!open);
+            laporanSubMenu.setManaged(!open);
+            laporanBtn.setText(open ? "📊  Laporan ▼" : "📊  Laporan ▲");
+        });
+
+        // MASUKKAN SUBMENU
+        laporanSubMenu.getChildren().addAll(
+                laporanPinjamBtn,
+                laporanGunaBtn
+        );
+
+        // FINAL ADD
+        menuBox.getChildren().addAll(
+                dashboardBtn,
+                verifikasiBtn,
+                manageDataBtn,
+                laporanBtn,
+                laporanSubMenu
+        );
+
 
 
         Region spacer = new Region();
@@ -134,7 +192,7 @@ public class AdminPage extends BorderPane {
 
         sidebar.getChildren().addAll(logoBox, userBox, menuBox, spacer, logoutBtn);
         
-        // ===================== MAIN CONTENT =====================
+        // MAIN CONTENT
         StackPane mainContent = new StackPane();
         mainContent.setStyle("-fx-background-color: #f8fafc;");
 
@@ -149,7 +207,7 @@ public class AdminPage extends BorderPane {
             "-fx-text-fill: #334155;"
         );
 
-        // ===================== CARD CONTENT =====================
+        // CARD CONTENT
         HBox cardBox = new HBox(20);
         cardBox.setAlignment(Pos.CENTER);
 
@@ -176,7 +234,6 @@ public class AdminPage extends BorderPane {
         Label titleLabel = new Label(title);
         titleLabel.setStyle(
                 "-fx-font-size: 18px;" +
-//                "-fx-text-fill: #64748b;" +
                 "-fx-font-weight: bold;" 
         );
 
@@ -201,7 +258,13 @@ public class AdminPage extends BorderPane {
 
     private Button createMenuButton(String text, boolean isActive) {
         Button btn = new Button(text);
-
+        
+        btn.setWrapText(true);
+        btn.setTextAlignment(javafx.scene.text.TextAlignment.LEFT);
+        btn.setAlignment(Pos.CENTER_LEFT);
+        btn.setMaxWidth(Double.MAX_VALUE);
+        btn.setPrefHeight(Region.USE_COMPUTED_SIZE);
+    
         if (isActive) {
             btn.setStyle(
                     "-fx-background-color: rgba(164,35,35,0.10);" +
@@ -226,7 +289,6 @@ public class AdminPage extends BorderPane {
             );
         }
 
-        btn.setMaxWidth(Double.MAX_VALUE);
         return btn;
     }
 }

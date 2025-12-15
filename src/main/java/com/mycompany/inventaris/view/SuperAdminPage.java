@@ -1,6 +1,16 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package com.mycompany.inventaris.view;
 
+/**
+ *
+ * @author Amy
+ */
+
 import com.mycompany.inventaris.model.User;
+import java.io.File;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -106,10 +116,24 @@ public class SuperAdminPage extends BorderPane {
         VBox logoBox = new VBox(logo);
         logoBox.setAlignment(Pos.TOP_LEFT);
 
-        Image userPhoto = new Image(getClass().getResourceAsStream("/assets/user.png"));
+        Image userPhoto;
+        if (superadmin.getPhoto() != null && !superadmin.getPhoto().isEmpty()
+                && new File(superadmin.getPhoto()).exists()) {
+
+            userPhoto = new Image(
+                new File(superadmin.getPhoto()).toURI().toString(),
+                false
+            );
+        }else {
+            // fallback kalau user belum upload foto
+            userPhoto = new Image(
+                getClass().getResourceAsStream("/assets/user.png")
+            );
+        }
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);
+        userImage.setPreserveRatio(true);
         userImage.setPreserveRatio(true);
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
@@ -134,22 +158,20 @@ public class SuperAdminPage extends BorderPane {
         Button dashboardBtn = createMenuButton("🏠  Dashboard", true);
         Button userBtn = createMenuButton("👤  User", false);
         Button manageDataBtn = createMenuButton("⚙  Manage Data", false);
-        
-        // Submenu Laporan (collapsed by default)
-        VBox laporanSubmenu = new VBox(5);
-        laporanSubmenu.setVisible(false);
-        laporanSubmenu.setManaged(false);
-        laporanSubmenu.setPadding(new Insets(0, 0, 0, 25));
-        
+        Button auditTrailBtn = createMenuButton("📜  Audit Trail", false);
         Button laporanBtn = createMenuButton("📊  Laporan ▼", false);
+        
+        // Submenu Laporan
+        VBox laporanSubMenu = new VBox(5);
+        laporanSubMenu.setPadding(new Insets(0, 0, 0, 20));
+        laporanSubMenu.setVisible(false);
+        laporanSubMenu.setManaged(false);
 
-        // Toggle laporan submenu
-        laporanBtn.setOnAction(e -> {
-            boolean isVisible = laporanSubmenu.isVisible();
-            laporanSubmenu.setVisible(!isVisible);
-            laporanSubmenu.setManaged(!isVisible);
-            laporanBtn.setText(isVisible ? "📊  Laporan ▼" : "📊  Laporan ▲");
-        });
+        Button laporanPinjamBtn =
+                createMenuButton("Laporan Peminjaman", false);
+
+        Button laporanGunaBtn =
+                createMenuButton("Laporan Penggunaan", false);
 
         // Navigation handlers
         userBtn.setOnAction(e -> {
@@ -160,16 +182,47 @@ public class SuperAdminPage extends BorderPane {
        
         manageDataBtn.setOnAction(e -> {
             Stage currentStage = (Stage) manageDataBtn.getScene().getWindow();
-            Scene newScene = new Scene(new ManageDataPageSuperadmin(superadmin), 1280, 720);
+            Scene newScene = new Scene(new ManageDataPage(superadmin), 1280, 720);
             currentStage.setScene(newScene);
         });
+        
+        auditTrailBtn.setOnAction(e -> {
+            Stage currentStage = (Stage) auditTrailBtn.getScene().getWindow();
+            Scene newScene = new Scene(new AuditTrailPage(superadmin), 1280, 720);
+            currentStage.setScene(newScene);
+        });
+        
+        laporanPinjamBtn.setOnAction(e -> {
+            Stage s = (Stage) laporanBtn.getScene().getWindow();
+            s.setScene(new Scene(new LaporanPeminjamanPage(superadmin), 1280, 720));
+        });
+
+        laporanGunaBtn.setOnAction(e -> {
+            Stage s = (Stage) laporanGunaBtn.getScene().getWindow();
+            s.setScene(new Scene(new LaporanPenggunaanPage(superadmin), 1280, 720));
+        });
+        
+        // TOGGLE LAPORAN ▼ ▲
+        laporanBtn.setOnAction(e -> {
+            boolean open = laporanSubMenu.isVisible();
+            laporanSubMenu.setVisible(!open);
+            laporanSubMenu.setManaged(!open);
+            laporanBtn.setText(open ? "📊  Laporan ▼" : "📊  Laporan ▲");
+        });
+
+        // MASUKKAN SUBMENU
+        laporanSubMenu.getChildren().addAll(
+                laporanPinjamBtn,
+                laporanGunaBtn
+        );
 
         menuBox.getChildren().addAll(
             dashboardBtn, 
             userBtn, 
-            manageDataBtn, 
+            manageDataBtn,
+            auditTrailBtn,
             laporanBtn, 
-            laporanSubmenu
+            laporanSubMenu
         );
 
         Region spacer = new Region();
@@ -197,30 +250,37 @@ public class SuperAdminPage extends BorderPane {
 
     private Button createMenuButton(String text, boolean isActive) {
         Button btn = new Button(text);
+        
+        btn.setWrapText(true);
+        btn.setTextAlignment(javafx.scene.text.TextAlignment.LEFT);
+        btn.setAlignment(Pos.CENTER_LEFT);
+        btn.setMaxWidth(Double.MAX_VALUE);
+        btn.setPrefHeight(Region.USE_COMPUTED_SIZE);
+    
         if (isActive) {
             btn.setStyle(
-                "-fx-background-color: rgba(164,35,35,0.10); " +
-                "-fx-font-weight: bold; " +
-                "-fx-text-fill: #111827; " +
-                "-fx-padding: 10 15; " +
-                "-fx-background-radius: 6; " +
-                "-fx-font-size: 13px; " +
-                "-fx-alignment: center-left; " +
-                "-fx-cursor: hand;"
+                    "-fx-background-color: rgba(164,35,35,0.10);" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-text-fill: #111827;" +
+                    "-fx-padding: 10 15;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-font-size: 13px;" +
+                    "-fx-alignment: center-left;" +
+                    "-fx-cursor: hand;"
             );
         } else {
             btn.setStyle(
-                "-fx-background-color: transparent; " +
-                "-fx-font-size: 13px; " +
-                "-fx-text-fill: #475569; " +
-                "-fx-padding: 10 15; " +
-                "-fx-font-weight: bold; " +
-                "-fx-alignment: center-left; " +
-                "-fx-background-radius: 6; " +
-                "-fx-cursor: hand;"
+                    "-fx-background-color: transparent;" +
+                    "-fx-font-size: 13px;" +
+                    "-fx-text-fill: #475569;" +
+                    "-fx-padding: 10 15;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-alignment: center-left;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-cursor: hand;"
             );
         }
-        btn.setMaxWidth(Double.MAX_VALUE);
+
         return btn;
     }
 }

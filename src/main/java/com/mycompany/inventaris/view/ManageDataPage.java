@@ -1,5 +1,16 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package com.mycompany.inventaris.view;
 
+/**
+ *
+ * @author Amy
+ */
+
+import com.mycompany.inventaris.dao.BarangDAO;
+import com.mycompany.inventaris.model.Barang;
 import com.mycompany.inventaris.model.User;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
@@ -20,31 +31,28 @@ import java.util.ArrayList;
 import java.util.List;
 import javafx.print.PrinterJob;
 
-public class ManageDataPageSuperadmin extends BorderPane {
+public class ManageDataPage extends BorderPane {
     
     private TableView<BarangData> table;
     private List<BarangData> allData;
-    private User superadmin;
+    private User user;
     
-    public ManageDataPageSuperadmin(User superadmin) {
-        this.superadmin = superadmin;
+    public ManageDataPage(User user) {
+        this.user = user;
         allData = new ArrayList<>();
-        
-        // Dummy data - Computer
-        for (int i = 1; i <= 5; i++) {
-            allData.add(new BarangData("NC001", "Computer i5 10400f VGA RTX 1060", 
-                i == 1 ? "Gudang" : i == 2 ? "Lab SI" : i == 3 ? "Lab TI" : i == 4 ? "Lab Umum" : "Rusak",
-                i == 5 ? "7" : i == 1 ? "5" : "20"));
-        }
-        
-        // Dummy data - Proyektor
-        String[] locations = {"Gudang", "Lab SI", "Lab TI", "Lab Umum", "Ruang 105", "Ruang 106", 
-                             "Ruang 107", "Ruang 108", "Ruang 201", "Ruang 202", "Ruang 302", "Rusak"};
-        for (int i = 0; i < locations.length; i++) {
-            allData.add(new BarangData("NC002", "Proyektor Philips Smart LCD 600 ANSI Full HD", 
-                locations[i], i == 11 ? "10" : "1"));
-        }
-        
+             
+    try {
+        for (Barang b : BarangDAO.getAll()) {
+            allData.add(new BarangData(
+            b.getKode(),               
+            b.getNama(),               
+            b.getLokasi(),                
+            String.valueOf(b.getStok())      
+         ));
+         }
+    } catch (Exception e) {
+    e.printStackTrace();
+    }       
         initializeUI();
     }
 
@@ -169,11 +177,35 @@ public class ManageDataPageSuperadmin extends BorderPane {
             "-fx-font-weight: bold; " +
             "-fx-cursor: hand;"
         );
+        
+        if (user.isAdmin()) {
+        pindahBtn.setDisable(true);
+        pindahBtn.setVisible(false);
+           }
+        
         pindahBtn.setOnAction(e -> showPindahBarangPopup());
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        Button addBtn = new Button("Add");
+        addBtn.setStyle(
+            "-fx-background-color: #3C4C79; " +
+            "-fx-text-fill: white; " +
+            "-fx-padding: 10 30; " +
+            "-fx-background-radius: 20; " +
+            "-fx-font-size: 13px; " +
+            "-fx-font-weight: bold; " +
+            "-fx-cursor: hand;"
+        );
+        
+        if (user.isAdmin()) {
+        addBtn.setDisable(true);
+        addBtn.setVisible(false);
+           }
+        
+        addBtn.setOnAction(e -> showAddBarangPopup());
+        
         Button printBtn = new Button("Print");
         printBtn.setStyle(
             "-fx-background-color: #3C4C79; " +
@@ -217,7 +249,7 @@ public class ManageDataPageSuperadmin extends BorderPane {
         
         pagination.getChildren().addAll(pageInfo, prevBtn, page1Btn, page2Btn, page3Btn, nextBtn);
 
-        bottomBar.getChildren().addAll(pindahBtn, spacer, printBtn, exportBtn, spacer2, pagination);
+        bottomBar.getChildren().addAll(pindahBtn, spacer, addBtn, printBtn, exportBtn, spacer2, pagination);
 
         mainContent.getChildren().addAll(title, topBar, tableContainer, bottomBar);
 
@@ -225,6 +257,149 @@ public class ManageDataPageSuperadmin extends BorderPane {
         this.setCenter(mainContent);
     }
 
+    private void showAddBarangPopup() {
+    Stage popup = new Stage();
+    popup.setTitle("Tambah Barang");
+
+    // INPUT FIELDS
+    TextField kodeField = new TextField();
+    kodeField.setPromptText("Kode Barang");
+
+    TextField namaField = new TextField();
+    namaField.setPromptText("Nama Barang");
+
+    // ENUM: kategori
+    ComboBox<String> kategoriCombo = new ComboBox<>();
+    kategoriCombo.getItems().addAll(
+        "consumable",
+        "non_consumable",
+        "reusable"
+    );
+    kategoriCombo.setPromptText("Kategori");
+
+    // Stok (numeric only)
+    TextField stokField = new TextField();
+    stokField.setPromptText("Stok");
+    stokField.setTextFormatter(new TextFormatter<>(change -> {
+        String text = change.getControlNewText();
+        return text.matches("\\d*") ? change : null;
+    }));
+
+    // ENUM: kondisi
+    ComboBox<String> kondisiCombo = new ComboBox<>();
+    kondisiCombo.getItems().addAll(
+        "baik",
+        "rusak",
+        "digunakan"
+    );
+    kondisiCombo.setPromptText("Kondisi");
+
+    TextField lokasiField = new TextField();
+    lokasiField.setPromptText("Lokasi");
+
+    // ENUM: status
+    ComboBox<String> statusCombo = new ComboBox<>();
+    statusCombo.getItems().addAll(
+        "tersedia",
+        "rusak",
+        "dipinjam"
+    );
+    statusCombo.setPromptText("Status");
+
+    // BUTTONS
+    Button simpanBtn = new Button("Simpan");
+    Button batalBtn = new Button("Batal");
+
+    simpanBtn.setOnAction(e -> handleAdd(
+        kodeField.getText(),
+        namaField.getText(),
+        kategoriCombo.getValue(),
+        stokField.getText(),
+        kondisiCombo.getValue(),
+        lokasiField.getText(),
+        statusCombo.getValue(),
+        popup
+    ));
+
+    batalBtn.setOnAction(e -> popup.close());
+
+    HBox buttonBox = new HBox(10, simpanBtn, batalBtn);
+    buttonBox.setAlignment(Pos.CENTER_RIGHT);
+
+    VBox layout = new VBox(12,
+        new Label("Kode Barang"), kodeField,
+        new Label("Nama Barang"), namaField,
+        new Label("Kategori"), kategoriCombo,
+        new Label("Stok"), stokField,
+        new Label("Kondisi"), kondisiCombo,
+        new Label("Lokasi"), lokasiField,
+        new Label("Status"), statusCombo,
+        buttonBox
+    );
+
+    layout.setPadding(new Insets(20));
+
+    popup.setScene(new Scene(layout, 350, 500));
+    popup.show();
+}
+
+
+   private void handleAdd(
+        String kode,
+        String nama,
+        String kategori,
+        String stokText,
+        String kondisi,
+        String lokasi,
+        String status,
+        Stage popup
+) {
+    // Minimal validation
+    if (kode.isEmpty() || nama.isEmpty() || stokText.isEmpty()
+            || kategori == null || kondisi == null || status == null) {
+        return;
+    }
+
+    int stok = Integer.parseInt(stokText);
+
+    Barang barang = new Barang(
+        0,             
+        kode,
+        nama,
+        kategori,
+        stok,
+        kondisi,
+        lokasi,
+        status
+    );
+
+    if (BarangDAO.insertBarang(barang)) {
+        refreshTable();
+        popup.close();
+    }
+}
+
+   private void refreshTable() {
+    table.getItems().clear();
+    allData.clear();
+
+    List<Barang> barangList = BarangDAO.getAll();
+    if (barangList == null) return;
+
+    for (Barang b : barangList) {
+        allData.add(new BarangData(
+            b.getKode(),                       
+            b.getNama(),
+            b.getLokasi(),
+            String.valueOf(b.getStok())
+        ));
+    }
+
+    table.getItems().addAll(allData);
+}
+
+
+    
     private void handlePrint() {
     Stage previewStage = new Stage();
     previewStage.setTitle("Print Preview");
@@ -499,7 +674,7 @@ public class ManageDataPageSuperadmin extends BorderPane {
 
         detailTable.getColumns().addAll(lokasiCol, idBarangCol, namaBarangCol, qtyCol);
 
-        // Dummy data untuk table (akan muncul setelah tambah barang)
+        // Dummy data untuk table
         detailTable.getItems().addAll(
             new DetailBarang("Gudang", "NC003", "Computer", "5"),
             new DetailBarang("Gudang", "NC003", "Spidol", "77"),
@@ -631,7 +806,20 @@ public class ManageDataPageSuperadmin extends BorderPane {
         VBox logoBox = new VBox(logo);
         logoBox.setAlignment(Pos.TOP_LEFT);
 
-        Image userPhoto = new Image(getClass().getResourceAsStream("/assets/user.png"));
+        Image userPhoto;
+        if (user.getPhoto() != null && !user.getPhoto().isEmpty()
+                && new File(user.getPhoto()).exists()) {
+
+            userPhoto = new Image(
+                new File(user.getPhoto()).toURI().toString(),
+                false
+            );
+        }else {
+            // fallback kalau user belum upload foto
+            userPhoto = new Image(
+                getClass().getResourceAsStream("/assets/user.png")
+            );
+        }
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);
@@ -639,10 +827,10 @@ public class ManageDataPageSuperadmin extends BorderPane {
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
 
-        Label nameLabel = new Label(superadmin.getNama());
+        Label nameLabel = new Label(user.getNama());
         nameLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");
         
-        Label roleLabel = new Label(superadmin.getRole().toUpperCase());
+        Label roleLabel = new Label(user.getRole().toUpperCase());
         roleLabel.setStyle(
                 "-fx-font-size: 10px;" +
                 "-fx-text-fill: #9ca3af;" +
@@ -657,38 +845,90 @@ public class ManageDataPageSuperadmin extends BorderPane {
 
         VBox menuBox = new VBox(8);
         Button dashboardBtn = createMenuButton("🏠  Dashboard", false);
+        Button verifikasiBtn = createMenuButton("✓  Verifikasi", false);
         Button userBtn = createMenuButton("👤  User", false);
         Button manageDataBtn = createMenuButton("⚙  Manage Data", true);
-        
-        // Submenu Laporan (collapsed by default)
-        VBox laporanSubmenu = new VBox(5);
-        laporanSubmenu.setVisible(false);
-        laporanSubmenu.setManaged(false);
-        laporanSubmenu.setPadding(new Insets(0, 0, 0, 25));
-        
+        Button auditTrailBtn = createMenuButton("📜  Audit Trail", false);
         Button laporanBtn = createMenuButton("📊  Laporan ▼", false);
+        
+        VBox laporanSubMenu = new VBox(5);
+        laporanSubMenu.setPadding(new Insets(0, 0, 0, 20));
+        laporanSubMenu.setVisible(false);
+        laporanSubMenu.setManaged(false);
 
-        // Toggle laporan submenu
-        laporanBtn.setOnAction(e -> {
-            boolean isVisible = laporanSubmenu.isVisible();
-            laporanSubmenu.setVisible(!isVisible);
-            laporanSubmenu.setManaged(!isVisible);
-            laporanBtn.setText(isVisible ? "📊  Laporan ▼" : "📊  Laporan ▲");
-        });
+        Button laporanPinjamBtn =
+                createMenuButton("Laporan Peminjaman", false);
 
+        Button laporanGunaBtn =
+                createMenuButton("Laporan Penggunaan", false);
+        
         dashboardBtn.setOnAction(e -> {
-            Stage currentStage = (Stage) dashboardBtn.getScene().getWindow();
-            Scene newScene = new Scene(new SuperAdminPage(superadmin), 1280, 720);
+            Stage s = (Stage) sidebar.getScene().getWindow();
+        if (user.isSuperAdmin()) {
+            s.setScene(new Scene(new SuperAdminPage(user), 1280, 720));
+        } else {
+            s.setScene(new Scene(new AdminPage(user), 1280, 720));
+        }
+    });
+        
+        verifikasiBtn.setOnAction(e -> {
+            Stage currentStage = (Stage) verifikasiBtn.getScene().getWindow();
+            Scene newScene = new Scene(new VerifikasiPage(user), 1280, 720);
             currentStage.setScene(newScene);
         });
         
         userBtn.setOnAction(e -> {
             Stage currentStage = (Stage) userBtn.getScene().getWindow();
-            Scene newScene = new Scene(new AdminUserPage(superadmin), 1280, 720);
+            Scene newScene = new Scene(new AdminUserPage(user), 1280, 720);
             currentStage.setScene(newScene);
         });
+        
+        auditTrailBtn.setOnAction(e -> {
+            Stage currentStage = (Stage) auditTrailBtn.getScene().getWindow();
+            Scene newScene = new Scene(new AuditTrailPage(user), 1280, 720);
+            currentStage.setScene(newScene);
+        });
+        
+        laporanPinjamBtn.setOnAction(e -> {
+            Stage s = (Stage) laporanBtn.getScene().getWindow();
+            s.setScene(new Scene(new LaporanPeminjamanPage(user), 1280, 720));
+        });
+        
+        
+        laporanGunaBtn.setOnAction(e -> {
+            Stage s = (Stage) laporanGunaBtn.getScene().getWindow();
+            s.setScene(new Scene(new LaporanPenggunaanPage(user), 1280, 720));
+        });
+        
+        laporanBtn.setOnAction(e -> {
+            boolean open = laporanSubMenu.isVisible();
+            laporanSubMenu.setVisible(!open);
+            laporanSubMenu.setManaged(!open);
+            laporanBtn.setText(open ? "📊  Laporan ▼" : "📊  Laporan ▲");
+        });
 
-        menuBox.getChildren().addAll(dashboardBtn, userBtn, manageDataBtn, laporanBtn);
+        laporanSubMenu.getChildren().addAll(
+                laporanPinjamBtn,
+                laporanGunaBtn
+        );
+        
+        menuBox.getChildren().add(dashboardBtn);
+
+        if (user.isAdmin()) {
+            menuBox.getChildren().add(verifikasiBtn);
+        }
+        
+        if (user.isSuperAdmin()) {
+            menuBox.getChildren().add(userBtn);
+        }
+        
+        menuBox.getChildren().add(manageDataBtn);
+        
+        if (user.isSuperAdmin()) {
+            menuBox.getChildren().add(auditTrailBtn);
+        }
+        
+        menuBox.getChildren().addAll(laporanBtn, laporanSubMenu);
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
@@ -715,30 +955,37 @@ public class ManageDataPageSuperadmin extends BorderPane {
 
     private Button createMenuButton(String text, boolean isActive) {
         Button btn = new Button(text);
+        
+        btn.setWrapText(true);
+        btn.setTextAlignment(javafx.scene.text.TextAlignment.LEFT);
+        btn.setAlignment(Pos.CENTER_LEFT);
+        btn.setMaxWidth(Double.MAX_VALUE);
+        btn.setPrefHeight(Region.USE_COMPUTED_SIZE);
+    
         if (isActive) {
             btn.setStyle(
-                "-fx-background-color: rgba(164,35,35,0.10); " +
-                "-fx-font-weight: bold; " +
-                "-fx-text-fill: #111827; " +
-                "-fx-padding: 10 15; " +
-                "-fx-background-radius: 6; " +
-                "-fx-font-size: 13px; " +
-                "-fx-alignment: center-left; " +
-                "-fx-cursor: hand;"
+                    "-fx-background-color: rgba(164,35,35,0.10);" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-text-fill: #111827;" +
+                    "-fx-padding: 10 15;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-font-size: 13px;" +
+                    "-fx-alignment: center-left;" +
+                    "-fx-cursor: hand;"
             );
         } else {
             btn.setStyle(
-                "-fx-background-color: transparent; " +
-                "-fx-font-size: 13px; " +
-                "-fx-text-fill: #475569; " +
-                "-fx-padding: 10 15; " +
-                "-fx-font-weight: bold; " +
-                "-fx-alignment: center-left; " +
-                "-fx-background-radius: 6; " +
-                "-fx-cursor: hand;"
+                    "-fx-background-color: transparent;" +
+                    "-fx-font-size: 13px;" +
+                    "-fx-text-fill: #475569;" +
+                    "-fx-padding: 10 15;" +
+                    "-fx-font-weight: bold;" +
+                    "-fx-alignment: center-left;" +
+                    "-fx-background-radius: 6;" +
+                    "-fx-cursor: hand;"
             );
         }
-        btn.setMaxWidth(Double.MAX_VALUE);
+
         return btn;
     }
 

@@ -135,6 +135,15 @@ public class User {
         return role;
     }
     
+     public boolean isAdmin() {
+        return "admin".equalsIgnoreCase(role);
+    }
+
+    public boolean isSuperAdmin() {
+        return "superadmin".equalsIgnoreCase(role);
+    }
+    
+    
     public void setRole(String role){
         this.role = role;
     }
