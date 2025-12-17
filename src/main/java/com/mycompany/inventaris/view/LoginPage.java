@@ -19,6 +19,8 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import java.util.prefs.Preferences;
 
+import com.mycompany.inventaris.dao.AuditTrailDAO;
+import java.net.InetAddress;
 import com.mycompany.inventaris.dao.LoginDAO;
 import com.mycompany.inventaris.model.User;
 
@@ -255,18 +257,36 @@ public class LoginPage extends StackPane {
         }
 
         User u = LoginDAO.login(user, pw);
-        if (u == null) {    
-            show("Login Gagal", "Username atau password salah!");
-            return;
-        } 
-        
-        if (rememberMe.isSelected()) {
-            prefs.put("remember_username", user);
-            prefs.putBoolean("remember_checked", true);
-        } else {
-            prefs.remove("remember_username");
-            prefs.putBoolean("remember_checked", false);
-        }
+
+String ip = "UNKNOWN";
+try {
+    ip = InetAddress.getLocalHost().getHostAddress();
+} catch (Exception e) {
+    e.printStackTrace();
+}
+
+if (u == null) {
+    AuditTrailDAO.log(
+            0,
+            user,
+            "LOGIN",
+            "Login gagal",
+            ip,
+            "GAGAL"
+    );
+    show("Login Gagal", "Username atau password salah!");
+    return;
+}
+
+AuditTrailDAO.log(
+        u.getIdUser(),
+        u.getUsername(),
+        "LOGIN",
+        "Login berhasil",
+        ip,
+        "BERHASIL"
+);
+
 
         Scene scene;
         switch (u.getRole().toLowerCase()){
