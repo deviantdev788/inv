@@ -11,6 +11,7 @@ package com.mycompany.inventaris.view;
 
 import com.mycompany.inventaris.model.User;
 import com.mycompany.inventaris.model.AuditLog;
+import com.mycompany.inventaris.dao.UserAdminDAO;
 import com.mycompany.inventaris.dao.AuditTrailDAO;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
@@ -33,13 +34,150 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 public class AuditTrailPage extends BorderPane {
-    
+    private String currentSearchKeyword = "";
+    private ComboBox<String> userCombo;
     private TableView<AuditLog> table;
     private List<AuditLog> allData;
     private User superadmin;
     private DatePicker startDatePicker;
     private DatePicker endDatePicker;
+    private static final long MAX_IMAGE_SIZE = 5L * 1024 * 1024; // 5MB
+    private byte[] fileToBytes(File file) {
+    try (java.io.FileInputStream fis = new java.io.FileInputStream(file)) {
+        return fis.readAllBytes();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return null;
+    }
+};
+    
+    private Image centerCropSquare(Image source) {
+    double size = Math.min(source.getWidth(), source.getHeight());
+
+    double x = (source.getWidth() - size) / 2;
+    double y = (source.getHeight() - size) / 2;
+
+    javafx.scene.SnapshotParameters params = new javafx.scene.SnapshotParameters();
+    params.setViewport(new javafx.geometry.Rectangle2D(x, y, size, size));
+
+    ImageView iv = new ImageView(source);
+    iv.setFitWidth(300);
+    iv.setFitHeight(300);
+    iv.setPreserveRatio(true);
+
+    return iv.snapshot(params, null);
+}
+
+    
+    
+private void openProfilePhotoDialog(ImageView sidebarImage) {
+
+    Stage dialog = new Stage();
+    dialog.initModality(Modality.APPLICATION_MODAL);
+    dialog.initStyle(StageStyle.UNDECORATED);
+
+    VBox root = new VBox(15);
+    root.setPadding(new Insets(20));
+    root.setAlignment(Pos.CENTER);
+    root.setStyle(
+        "-fx-background-color: white;" +
+        "-fx-border-radius: 12;" +
+        "-fx-background-radius: 12;" +
+        "-fx-border-color: #e5e7eb;"
+    );
+
+    // Preview image
+    ImageView preview = new ImageView();
+    preview.setFitWidth(120);
+    preview.setFitHeight(120);
+    preview.setPreserveRatio(true);
+
+    Circle clip = new Circle(60, 60, 60);
+    preview.setClip(clip);
+
+    // Load existing photo
+    if (superadmin.getPhoto() != null && superadmin.getPhoto().length > 0) {
+        preview.setImage(
+            new Image(new java.io.ByteArrayInputStream(superadmin.getPhoto()), 300, 300, true, true)
+        );
+    } else {
+        preview.setImage(new Image(getClass().getResourceAsStream("/assets/user.png")));
+    }
+
+    final File[] selectedFile = new File[1];
+
+    Button chooseBtn = new Button("Choose Image");
+    Label sizeHint = new Label("Max file size: 5MB");
+    sizeHint.setStyle(
+    "-fx-font-size: 11px; " +
+    "-fx-text-fill: #64748b;"
+    );
+
+    chooseBtn.setOnAction(e -> {
+        FileChooser fc = new FileChooser();
+        fc.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.jfif")
+        );
+
+        File file = fc.showOpenDialog(dialog);
+        if (file == null) return;
+
+        if (file.length() > MAX_IMAGE_SIZE) {
+            new Alert(Alert.AlertType.ERROR, "Image size must be under 5MB").show();
+            return;
+        }
+
+        Image img = new Image(file.toURI().toString(), 400, 400, true, true);
+        Image cropped = centerCropSquare(img);
+
+        preview.setImage(cropped);
+        selectedFile[0] = file;
+    });
+
+    Button saveBtn = new Button("Save");
+    Button cancelBtn = new Button("Cancel");
+
+    HBox buttons = new HBox(10, saveBtn, cancelBtn);
+    buttons.setAlignment(Pos.CENTER);
+
+    saveBtn.setOnAction(e -> {
+
+        if (selectedFile[0] == null) {
+            dialog.close();
+            return;
+        }
+
+        try {
+            byte[] bytes = fileToBytes(selectedFile[0]);
+
+            UserAdminDAO dao = new UserAdminDAO();
+            boolean success = dao.updateUserPhoto(superadmin.getIdUser(), bytes);
+
+            if (success) {
+                superadmin.setPhoto(bytes);
+
+                // reload page
+                Stage stage = (Stage) sidebarImage.getScene().getWindow();
+                stage.setScene(new Scene(new AdminUserPage(superadmin), 1280, 720));
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        dialog.close();
+    });
+
+    cancelBtn.setOnAction(e -> dialog.close());
+
+    root.getChildren().addAll(preview, chooseBtn, buttons);
+
+    Scene scene = new Scene(root);
+    dialog.setScene(scene);
+    dialog.showAndWait();
+}
+
     
     public AuditTrailPage(User superadmin) {
         this.superadmin = superadmin;
@@ -93,9 +231,24 @@ public class AuditTrailPage extends BorderPane {
         VBox userFilterBox = new VBox(5);
         Label userLabel = new Label("Pengguna");
         userLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
-        ComboBox<String> userCombo = new ComboBox<>();
-        userCombo.getItems().addAll("Semua Pengguna", "Nadia Admin", "Ahmad Petugas", "Siti Dosen", "Medi Mahasiswa", "Fadlia Mahasiswa", "Raipa Petugas");
-        userCombo.setValue("Semua Pengguna");
+       userCombo = new ComboBox<>();
+userCombo.setPrefWidth(180);
+
+/* first item = blank */
+userCombo.getItems().add("");
+
+UserAdminDAO userDao = new UserAdminDAO();
+List<User> users = userDao.getAll();
+
+for (User u : users) {
+    userCombo.getItems().add(
+        u.getUsername() + " - " + u.getRole()
+    );
+}
+
+/* default selected = blank */
+userCombo.setValue("");
+
         userCombo.setPrefWidth(180);
         userFilterBox.getChildren().addAll(userLabel, userCombo);
 
@@ -103,8 +256,8 @@ public class AuditTrailPage extends BorderPane {
         Label actionLabel = new Label("Jenis Aksi");
         actionLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
         ComboBox<String> actionCombo = new ComboBox<>();
-        actionCombo.getItems().addAll("Semua Aksi", "LOGIN", "LOGOUT", "TAMBAH_USER", "EDIT_BARANG", "HAPUS_BARANG", "TAMBAH_BARANG", "PEMINJAMAN", "PENGEMBALIAN", "PENGGUNAAN", "VERIFIKASI", "EKSPOR_DATA");
-        actionCombo.setValue("Semua Aksi");
+        actionCombo.getItems().addAll("", "LOGIN", "LOGOUT", "EDIT_USER", "TAMBAH_USER", "EDIT_BARANG", "HAPUS_BARANG", "TAMBAH_BARANG", "PEMINJAMAN", "PENGEMBALIAN", "PENGGUNAAN", "VERIFIKASI", "EKSPOR_DATA");
+        actionCombo.setValue("");
         actionCombo.setPrefWidth(180);
         actionFilterBox.getChildren().addAll(actionLabel, actionCombo);
 
@@ -136,8 +289,8 @@ public class AuditTrailPage extends BorderPane {
         resetBtn.setOnAction(e -> {
             startDatePicker.setValue(null);
             endDatePicker.setValue(null);
-            userCombo.setValue("Semua Pengguna");
-            actionCombo.setValue("Semua Aksi");
+            userCombo.setValue("");
+            actionCombo.setValue("");
             refreshTable(allData);
         });
 
@@ -291,22 +444,11 @@ public class AuditTrailPage extends BorderPane {
             }
         });
 
-        // Search functionality
-        searchField.textProperty().addListener((obs, old, newVal) -> {
-            if (newVal.isEmpty()) {
-                refreshTable(allData);
-            } else {
-                String keyword = newVal.toLowerCase();
-                List<AuditLog> filtered = allData.stream()
-                    .filter(log -> 
-                        log.getUserName().toLowerCase().contains(keyword) ||
-                        log.getAction().toLowerCase().contains(keyword) ||
-                        log.getDescription().toLowerCase().contains(keyword) ||
-                        log.getIpAddress().toLowerCase().contains(keyword))
-                    .collect(Collectors.toList());
-                refreshTable(filtered);
-            }
-        });
+     searchField.textProperty().addListener((obs, old, newVal) -> {
+    currentSearchKeyword = newVal == null ? "" : newVal.toLowerCase();
+    applyFilters(userCombo.getValue(), actionCombo.getValue());
+});
+
 
         // Stats Card
         HBox statsCard = createStatsCard();
@@ -375,37 +517,53 @@ public class AuditTrailPage extends BorderPane {
         }
     }
 
-    private void applyFilters(String user, String action) {
-        List<AuditLog> filtered = new ArrayList<>(allData);
+  private void applyFilters(String user, String action) {
 
-        // Filter by date range
-        LocalDate startDate = startDatePicker.getValue();
-        LocalDate endDate = endDatePicker.getValue();
-        if (startDate != null && endDate != null) {
-            filtered = filtered.stream()
-                .filter(log -> {
-                    LocalDate logDate = LocalDate.parse(log.getTimestamp().substring(0, 10));
-                    return !logDate.isBefore(startDate) && !logDate.isAfter(endDate);
-                })
-                .collect(Collectors.toList());
-        }
+    List<AuditLog> filtered = new ArrayList<>(allData);
 
-        // Filter by user
-        if (!user.equals("Semua Pengguna")) {
-            filtered = filtered.stream()
-                .filter(log -> log.getUserName().equals(user))
-                .collect(Collectors.toList());
-        }
-
-        // Filter by action
-        if (!action.equals("Semua Aksi")) {
-            filtered = filtered.stream()
-                .filter(log -> log.getAction().equals(action))
-                .collect(Collectors.toList());
-        }
-
-        refreshTable(filtered);
+    // 1. Date range
+    LocalDate startDate = startDatePicker.getValue();
+    LocalDate endDate = endDatePicker.getValue();
+    if (startDate != null && endDate != null) {
+        filtered = filtered.stream()
+            .filter(log -> {
+                LocalDate logDate = LocalDate.parse(log.getTimestamp().substring(0, 10));
+                return !logDate.isBefore(startDate) && !logDate.isAfter(endDate);
+            })
+            .collect(Collectors.toList());
     }
+
+    // 2. User dropdown
+    if (user != null && !user.isEmpty()) {
+        String selectedUsername = user.split(" - ")[0];
+        filtered = filtered.stream()
+            .filter(log -> log.getUserName().equals(selectedUsername))
+            .collect(Collectors.toList());
+    }
+
+    // 3. Action dropdown
+    if (action != null && !action.equals("Semua Aksi")) {
+        filtered = filtered.stream()
+            .filter(log -> log.getAction().equals(action))
+            .collect(Collectors.toList());
+    }
+
+    // 4. SEARCH BAR (combined!)
+    if (!currentSearchKeyword.isEmpty()) {
+        filtered = filtered.stream()
+            .filter(log ->
+                log.getUserName().toLowerCase().contains(currentSearchKeyword) ||
+                log.getAction().toLowerCase().contains(currentSearchKeyword) ||
+                log.getDescription().toLowerCase().contains(currentSearchKeyword) ||
+                log.getIpAddress().toLowerCase().contains(currentSearchKeyword) ||
+                log.getStatus().toLowerCase().contains(currentSearchKeyword)
+            )
+            .collect(Collectors.toList());
+    }
+
+    refreshTable(filtered);
+}
+
 
     private void refreshTable(List<AuditLog> data) {
         table.getItems().clear();
@@ -549,25 +707,27 @@ public class AuditTrailPage extends BorderPane {
         logoBox.setAlignment(Pos.TOP_LEFT);
 
         Image userPhoto;
-        if (superadmin.getPhoto() != null && !superadmin.getPhoto().isEmpty()
-                && new File(superadmin.getPhoto()).exists()) {
 
-            userPhoto = new Image(
-                new File(superadmin.getPhoto()).toURI().toString(),
-                false
-            );
-        }else {
-            // fallback kalau user belum upload foto
-            userPhoto = new Image(
-                getClass().getResourceAsStream("/assets/user.png")
-            );
-        }
+    if (superadmin.getPhoto() != null && superadmin.getPhoto().length > 0) {
+        userPhoto = new Image(
+        new java.io.ByteArrayInputStream(superadmin.getPhoto())
+        );
+    } else {
+        userPhoto = new Image(
+        getClass().getResourceAsStream("/assets/user.png")
+    );
+    }
+
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);
         userImage.setPreserveRatio(true);
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
+        userImage.setCursor(javafx.scene.Cursor.HAND);
+        userImage.setOnMouseClicked(e -> openProfilePhotoDialog(userImage));
+
+        
 
         Label nameLabel = new Label(superadmin.getNama());
         nameLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");

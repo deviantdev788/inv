@@ -35,7 +35,7 @@ public class UserAdminDAO {
             ps.setString(8, user.getIdentity());
             ps.setString(9, user.getRole());
             ps.setString(10, user.getStatus());
-            ps.setString(11, user.getPhoto());
+            ps.setBytes(11, user.getPhoto());
 
             return ps.executeUpdate() > 0;
 
@@ -61,12 +61,13 @@ public class UserAdminDAO {
                 u.setUsername(rs.getString("username"));
                 u.setEmail(rs.getString("email"));
                 u.setPhone(rs.getString("phone"));
+                u.setPassword(rs.getString("password"));
                 u.setIdentity(rs.getString("identity_number"));
                 u.setRole(rs.getString("role"));
                 u.setStatus(rs.getString("status"));
                 u.setPlace(rs.getString("birthPlace"));
                 u.setBirth(rs.getDate("birthDate"));
-                u.setPhoto(rs.getString("photo"));
+                u.setPhoto(rs.getBytes("photo"));
 
                 // created_at
                 Timestamp ts = rs.getTimestamp("created_at");
@@ -84,31 +85,50 @@ public class UserAdminDAO {
         return list;
     }
 
-    // UPDATE user
-    public boolean update(User user) {
-        String sql = "UPDATE user SET name=?, email=?, phone=?, role=?, status=?, " +
-                "birthPlace=?, birthDate=?, identity_number=?, photo=? WHERE id_user=?";
+    public boolean updateUserPhoto(int userId, byte[] photo) {
+    String sql = "UPDATE user SET photo = ? WHERE id_user = ?";
 
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+    try (PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, user.getNama());
-            ps.setString(2, user.getEmail());
-            ps.setString(3, user.getPhone());
-            ps.setString(4, user.getRole());
-            ps.setString(5, user.getStatus());
-            ps.setString(6, user.getPlace());
-            ps.setDate(7, new java.sql.Date(user.getBirth().getTime()));
-            ps.setString(8, user.getIdentity());
-            ps.setString(9, user.getPhoto());
-            ps.setInt(10, user.getIdUser());
+        ps.setBytes(1, photo);
+        ps.setInt(2, userId);
 
-            return ps.executeUpdate() > 0;
+        return ps.executeUpdate() > 0;
 
-        } catch (Exception e) {
-            System.out.println("Update User Error: " + e.getMessage());
-            return false;
-        }
+    } catch (Exception e) {
+        System.out.println("Update User Photo Error: " + e.getMessage());
+        return false;
     }
+}
+
+    
+    
+public boolean update(User user) {
+    String sql = "UPDATE user SET name=?, email=?, phone=?, password=?, role=?, status=?, " +
+            "birthPlace=?, birthDate=?, identity_number=?, photo=? WHERE id_user=?";
+
+    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+        ps.setString(1, user.getNama());
+        ps.setString(2, user.getEmail());
+        ps.setString(3, user.getPhone());
+        ps.setString(4, user.getPassword()); 
+        ps.setString(5, user.getRole());
+        ps.setString(6, user.getStatus());
+        ps.setString(7, user.getPlace());
+        ps.setDate(8, new java.sql.Date(user.getBirth().getTime()));
+        ps.setString(9, user.getIdentity());
+        ps.setBytes(10, user.getPhoto());
+        ps.setInt(11, user.getIdUser());
+
+        return ps.executeUpdate() > 0;
+
+    } catch (Exception e) {
+        System.out.println("Update User Error: " + e.getMessage());
+        return false;
+    }
+}
+
 
     // DELETE user
     public boolean delete(int id_user) {
@@ -125,3 +145,4 @@ public class UserAdminDAO {
         }
     }
 }
+

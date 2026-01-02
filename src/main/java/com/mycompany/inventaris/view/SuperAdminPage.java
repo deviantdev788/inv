@@ -11,6 +11,7 @@ package com.mycompany.inventaris.view;
 
 import com.mycompany.inventaris.model.User;
 import com.mycompany.inventaris.dao.AuditTrailDAO;
+import com.mycompany.inventaris.dao.DashboardDAO;
 import java.io.File;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -51,14 +52,38 @@ public class SuperAdminPage extends BorderPane {
             "-fx-text-fill: #64748b;"
         );
 
-        // Stats Cards
+         // Stats Cards
         HBox statsBox = new HBox(30);
         statsBox.setAlignment(Pos.CENTER);
+        
+        int permintaanCount = DashboardDAO.getPermintaanCount();
+        int peminjamanCount = DashboardDAO.getPeminjamanCount();
+        int pengembalianCount = DashboardDAO.getPengembalianCount();
+        int replacementCount = DashboardDAO.getReplacementCount();
 
-        VBox permintaanCard = createStatCard("Data Permintaan", "0", "#FDE2E4");
-        VBox peminjamanCard = createStatCard("Data Peminjaman", "0", "#DBEAFE");
-        VBox pengembalianCard = createStatCard("Data Pengembalian", "0", "#FCE7F3");
-        VBox replacementCard = createStatCard("Data Replacement", "0", "#BAE6FD");
+       VBox permintaanCard = createStatCard(
+        "Data Permintaan",
+        String.valueOf(permintaanCount),
+        "#FDE2E4"
+);
+
+VBox peminjamanCard = createStatCard(
+        "Data Peminjaman",
+        String.valueOf(peminjamanCount),
+        "#DBEAFE"
+);
+
+VBox pengembalianCard = createStatCard(
+        "Data Pengembalian",
+        String.valueOf(pengembalianCount),
+        "#FCE7F3"
+);
+
+VBox replacementCard = createStatCard(
+        "Data Replacement",
+        String.valueOf(replacementCount),
+        "#BAE6FD"
+);
 
         statsBox.getChildren().addAll(permintaanCard, peminjamanCard, pengembalianCard, replacementCard);
 
@@ -117,20 +142,17 @@ public class SuperAdminPage extends BorderPane {
         VBox logoBox = new VBox(logo);
         logoBox.setAlignment(Pos.TOP_LEFT);
 
-        Image userPhoto;
-        if (superadmin.getPhoto() != null && !superadmin.getPhoto().isEmpty()
-                && new File(superadmin.getPhoto()).exists()) {
+       Image userPhoto;
 
-            userPhoto = new Image(
-                new File(superadmin.getPhoto()).toURI().toString(),
-                false
-            );
-        }else {
-            // fallback kalau user belum upload foto
-            userPhoto = new Image(
-                getClass().getResourceAsStream("/assets/user.png")
-            );
-        }
+    if (superadmin.getPhoto() != null && superadmin.getPhoto().length > 0) {
+        userPhoto = new Image(
+        new java.io.ByteArrayInputStream(superadmin.getPhoto())
+        );
+    } else {
+        userPhoto = new Image(
+        getClass().getResourceAsStream("/assets/user.png")
+    );
+    }
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);

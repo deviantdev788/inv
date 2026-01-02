@@ -24,14 +24,14 @@ public class User {
     private String identity_number;
     private String role;
     private String status;
-    private String photo;
+    private byte[] photo;
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
     public User() {}
 
     public User(int id_user, String name, String username, String password, String email, 
-                String phone, String birthPlace, Date birthDate, String identity_number, String role, String status, String photo){
+                String phone, String birthPlace, Date birthDate, String identity_number, String role, String status, byte[] photo){
         this.id_user = id_user;
         this.name = name;
         this.username = username;
@@ -156,13 +156,14 @@ public class User {
         this.status = status;
     }
     
-    public String getPhoto(){
-        return photo;
-    }
-    public void setPhoto(String photo){
-        this.photo = photo;
-    }
-    
+  public byte[] getPhoto() {
+    return photo;
+}
+
+public void setPhoto(byte[] photo) {
+    this.photo = photo;
+}
+
     public Timestamp getCreatedAt() { 
         return createdAt; 
     }

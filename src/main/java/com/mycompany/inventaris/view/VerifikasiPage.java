@@ -292,20 +292,17 @@ public class VerifikasiPage extends BorderPane {
         VBox logoBox = new VBox(logo);
         logoBox.setAlignment(Pos.TOP_LEFT);
 
-        Image userPhoto;
-        if (admin.getPhoto() != null && !admin.getPhoto().isEmpty()
-                && new File(admin.getPhoto()).exists()) {
+         Image userPhoto;
 
-            userPhoto = new Image(
-                new File(admin.getPhoto()).toURI().toString(),
-                false
-            );
-        }else {
-            // fallback kalau user belum upload foto
-            userPhoto = new Image(
-                getClass().getResourceAsStream("/assets/user.png")
-            );
-        }
+    if (admin.getPhoto() != null && admin.getPhoto().length > 0) {
+        userPhoto = new Image(
+        new java.io.ByteArrayInputStream(admin.getPhoto())
+        );
+    } else {
+        userPhoto = new Image(
+        getClass().getResourceAsStream("/assets/user.png")
+    );
+    }
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);

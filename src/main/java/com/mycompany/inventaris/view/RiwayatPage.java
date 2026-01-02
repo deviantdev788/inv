@@ -250,21 +250,17 @@ public class RiwayatPage extends BorderPane {
         VBox logoBox = new VBox(logo);
         logoBox.setAlignment(Pos.TOP_LEFT);
 
-        // USER PROFILE 
         Image userPhoto;
-        if (user.getPhoto() != null && !user.getPhoto().isEmpty()
-                && new File(user.getPhoto()).exists()) {
 
-            userPhoto = new Image(
-                new File(user.getPhoto()).toURI().toString(),
-                false
-            );
-        }else {
-            // fallback kalau user belum upload foto
-            userPhoto = new Image(
-                getClass().getResourceAsStream("/assets/user.png")
-            );
-        }
+    if (user.getPhoto() != null && user.getPhoto().length > 0) {
+        userPhoto = new Image(
+        new java.io.ByteArrayInputStream(user.getPhoto())
+        );
+    } else {
+        userPhoto = new Image(
+        getClass().getResourceAsStream("/assets/user.png")
+    );
+    }
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);

@@ -31,11 +31,144 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class AdminUserPage extends BorderPane {
     
     private TableView<User> table;
     private List<User> allData;
     private User superadmin;
+    private byte[] fileToBytes(File file) {
+    try (java.io.FileInputStream fis = new java.io.FileInputStream(file)) {
+        return fis.readAllBytes();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return null;
+    }
+};
+    private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+    private Image centerCropSquare(Image source) {
+    double size = Math.min(source.getWidth(), source.getHeight());
+
+    double x = (source.getWidth() - size) / 2;
+    double y = (source.getHeight() - size) / 2;
+
+    javafx.scene.SnapshotParameters params = new javafx.scene.SnapshotParameters();
+    params.setViewport(new javafx.geometry.Rectangle2D(x, y, size, size));
+
+    ImageView iv = new ImageView(source);
+    iv.setFitWidth(300);
+    iv.setFitHeight(300);
+    iv.setPreserveRatio(true);
+
+    return iv.snapshot(params, null);
+}
+    
+    private void openProfilePhotoDialog(ImageView sidebarImage) {
+
+    Stage dialog = new Stage();
+    dialog.initModality(Modality.APPLICATION_MODAL);
+    dialog.initStyle(StageStyle.UNDECORATED);
+
+    VBox root = new VBox(15);
+    root.setPadding(new Insets(20));
+    root.setAlignment(Pos.CENTER);
+    root.setStyle(
+        "-fx-background-color: white;" +
+        "-fx-border-radius: 12;" +
+        "-fx-background-radius: 12;" +
+        "-fx-border-color: #e5e7eb;"
+    );
+
+    // Preview image
+    ImageView preview = new ImageView();
+    preview.setFitWidth(120);
+    preview.setFitHeight(120);
+    preview.setPreserveRatio(true);
+
+    Circle clip = new Circle(60, 60, 60);
+    preview.setClip(clip);
+
+    // Load existing photo
+    if (superadmin.getPhoto() != null && superadmin.getPhoto().length > 0) {
+        preview.setImage(
+            new Image(new java.io.ByteArrayInputStream(superadmin.getPhoto()), 300, 300, true, true)
+        );
+    } else {
+        preview.setImage(new Image(getClass().getResourceAsStream("/assets/user.png")));
+    }
+
+    final File[] selectedFile = new File[1];
+
+    Button chooseBtn = new Button("Choose Image");
+    Label sizeHint = new Label("Max file size: 5MB");
+    sizeHint.setStyle(
+    "-fx-font-size: 11px; " +
+    "-fx-text-fill: #64748b;"
+    );
+
+    chooseBtn.setOnAction(e -> {
+        FileChooser fc = new FileChooser();
+        fc.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.jfif")
+        );
+
+        File file = fc.showOpenDialog(dialog);
+        if (file == null) return;
+
+        if (file.length() > MAX_IMAGE_SIZE) {
+            new Alert(Alert.AlertType.ERROR, "Image size must be under 5MB").show();
+            return;
+        }
+
+        Image img = new Image(file.toURI().toString(), 400, 400, true, true);
+        Image cropped = centerCropSquare(img);
+
+        preview.setImage(cropped);
+        selectedFile[0] = file;
+    });
+
+    Button saveBtn = new Button("Save");
+    Button cancelBtn = new Button("Cancel");
+
+    HBox buttons = new HBox(10, saveBtn, cancelBtn);
+    buttons.setAlignment(Pos.CENTER);
+
+    saveBtn.setOnAction(e -> {
+
+        if (selectedFile[0] == null) {
+            dialog.close();
+            return;
+        }
+
+        try {
+            byte[] bytes = fileToBytes(selectedFile[0]);
+
+            UserAdminDAO dao = new UserAdminDAO();
+            boolean success = dao.updateUserPhoto(superadmin.getIdUser(), bytes);
+
+            if (success) {
+                superadmin.setPhoto(bytes);
+
+                // reload page
+                Stage stage = (Stage) sidebarImage.getScene().getWindow();
+                stage.setScene(new Scene(new AdminUserPage(superadmin), 1280, 720));
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        dialog.close();
+    });
+
+    cancelBtn.setOnAction(e -> dialog.close());
+
+    root.getChildren().addAll(preview, chooseBtn, sizeHint, buttons);
+
+    Scene scene = new Scene(root);
+    dialog.setScene(scene);
+    dialog.showAndWait();
+}
+
     
     public AdminUserPage(User superadmin) {
         this.superadmin = superadmin;
@@ -125,36 +258,101 @@ public class AdminUserPage extends BorderPane {
                 setGraphic(empty ? null : checkBox);
             }
         });
+  TableColumn<User, byte[]> photoCol = new TableColumn<>("Photo");
+        photoCol.setMinWidth(60);
+        photoCol.setMaxWidth(60);
+        photoCol.setPrefWidth(60);
 
+        photoCol.setCellValueFactory(
+        data -> new javafx.beans.property.SimpleObjectProperty<>(data.getValue().getPhoto())
+        );
+        photoCol.setCellFactory(col -> new TableCell<>() {
+
+    private final ImageView imageView = new ImageView();
+
+    @Override
+    protected void updateItem(byte[] photo, boolean empty) {
+        super.updateItem(photo, empty);
+
+        if (empty) {
+            setGraphic(null);
+            return;
+        }
+
+        User user = getTableRow().getItem();
+        if (user == null) {
+            setGraphic(null);
+            return;
+        }
+
+        StackPane avatar;
+
+        // ✅ PHOTO EXISTS
+        if (photo != null && photo.length > 0) {
+
+            Image img = new Image(
+                new java.io.ByteArrayInputStream(photo),
+                40, 40, true, true // resize on decode (IMPORTANT)
+            );
+
+            imageView.setImage(img);
+            imageView.setFitWidth(40);
+            imageView.setFitHeight(40);
+            imageView.setPreserveRatio(true);
+
+            Circle clip = new Circle(20, 20, 20);
+            imageView.setClip(clip);
+
+            avatar = new StackPane(imageView);
+
+        }
+        // ❌ NO PHOTO → INITIAL
+        else {
+            Circle circle = new Circle(20);
+            circle.setFill(Color.web("#94a3b8"));
+
+            String name = user.getNama();
+            Label initial = new Label(
+                (name != null && !name.isEmpty())
+                    ? name.substring(0, 1).toUpperCase()
+                    : "?"
+            );
+            initial.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+
+            avatar = new StackPane(circle, initial);
+        }
+
+        setGraphic(avatar);
+        setText(null); // ⬅ VERY IMPORTANT (prevents b@ output)
+    }
+});
+
+        
         // Avatar + Name column
-        TableColumn<User, String> nameCol = new TableColumn<>("Name");
+       TableColumn<User, String> nameCol = new TableColumn<>("Name");
         nameCol.setMinWidth(250);
+
+        nameCol.setCellValueFactory(
+        data -> new SimpleStringProperty(data.getValue().getNama())
+        );
+
         nameCol.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(String name, boolean empty) {
-                super.updateItem(name, empty);
-                if (empty || name == null) {
-                    setGraphic(null);
-                } else {
-                    Circle avatar = new Circle(20);
-                    avatar.setFill(Color.web("#94a3b8"));
-                    
-                    Label initial = new Label(name.substring(0, 1).toUpperCase());
-                    initial.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
-                    
-                    StackPane avatarStack = new StackPane(avatar, initial);
-                    
-                    Label nameLabel = new Label(name);
-                    nameLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #1e293b;");
-                    
-                    HBox box = new HBox(12, avatarStack, nameLabel);
-                    box.setAlignment(Pos.CENTER_LEFT);
-                    setGraphic(box);
-                }
+        @Override
+        protected void updateItem(String name, boolean empty) {
+        super.updateItem(name, empty);
+
+        if (empty || name == null) {
+            setText(null);
+        } else {
+            setText(name);
+            setStyle("-fx-font-size: 13px; -fx-text-fill: #1e293b;");
             }
-        });
+        }
+    });
+
         nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNama()));
 
+        
         TableColumn<User, String> idCol = new TableColumn<>("ID");
         idCol.setMinWidth(120);
         idCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getIdentity()));
@@ -171,25 +369,13 @@ public class AdminUserPage extends BorderPane {
         positionCol.setMinWidth(130);
         positionCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getRole()));
 
-        // Contact column
-        TableColumn<User, String> contactCol = new TableColumn<>("Contact");
-        contactCol.setMinWidth(100);
-        contactCol.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    Label emailIcon = new Label("✉");
-                    emailIcon.setStyle("-fx-font-size: 16px; -fx-text-fill: #3C4C79; -fx-cursor: hand;");
-                    HBox box = new HBox(emailIcon);
-                    box.setAlignment(Pos.CENTER);
-                    setGraphic(box);
-                }
-            }
-        });
-        contactCol.setCellValueFactory(data -> new SimpleStringProperty(""));
+        // Phone column
+TableColumn<User, String> phoneCol = new TableColumn<>("Phone");
+phoneCol.setMinWidth(140);
+phoneCol.setCellValueFactory(
+    data -> new SimpleStringProperty(data.getValue().getPhone())
+);
+
 
         // Status column
         TableColumn<User, String> statusCol = new TableColumn<>("Status");
@@ -253,7 +439,7 @@ public class AdminUserPage extends BorderPane {
             }
         });
 
-        table.getColumns().addAll(checkCol, nameCol, idCol, dateCol, positionCol, contactCol, statusCol, actionCol);
+        table.getColumns().addAll(checkCol, photoCol, nameCol, idCol, dateCol, positionCol, phoneCol, statusCol, actionCol);
         allData.forEach(data -> table.getItems().add(data));
 
         // Apply header styling
@@ -451,6 +637,9 @@ public class AdminUserPage extends BorderPane {
     TextField nameField = new TextField(user.getNama());
     TextField emailField = new TextField(user.getEmail());
     TextField phoneField = new TextField(user.getPhone());
+    TextField passwordField = new TextField(user.getPassword());
+    passwordField.setPromptText("Password");
+
 
     ComboBox<String> roleBox = new ComboBox<>();
     roleBox.getItems().addAll("Mahasiswa", "Dosen", "Admin", "Petugas");
@@ -467,6 +656,7 @@ public class AdminUserPage extends BorderPane {
     String oldName = user.getNama();
     String oldEmail = user.getEmail();
     String oldPhone = user.getPhone();
+    String oldPassword = user.getPassword();
     String oldRole = user.getRole();
     String oldStatus = user.getStatus();
 
@@ -474,6 +664,7 @@ public class AdminUserPage extends BorderPane {
     user.setNama(nameField.getText());
     user.setEmail(emailField.getText());
     user.setPhone(phoneField.getText());
+    user.setPassword(passwordField.getText());
     user.setRole(roleBox.getValue());
     user.setStatus(statusBox.getValue());
 
@@ -487,6 +678,7 @@ public class AdminUserPage extends BorderPane {
         if (!oldName.equals(user.getNama())) changes.add("Nama");
         if (!oldEmail.equals(user.getEmail())) changes.add("Email");
         if (!oldPhone.equals(user.getPhone())) changes.add("Phone");
+        if (!oldPassword.equals(passwordField.getText())) changes.add("Password");
         if (!oldRole.equals(user.getRole())) changes.add("Role");
         if (!oldStatus.equals(user.getStatus())) changes.add("Status");
 
@@ -505,7 +697,7 @@ public class AdminUserPage extends BorderPane {
         AuditTrailDAO.log(
                 superadmin.getIdUser(),
                 superadmin.getUsername(),
-                "EDIT_BARANG",
+                "EDIT_USER",
                 deskripsi,
                 ip,
                 "BERHASIL"
@@ -522,7 +714,7 @@ public class AdminUserPage extends BorderPane {
 
     box.getChildren().addAll(
         new Label("Edit User"),
-        nameField, emailField, phoneField,
+        nameField, emailField, phoneField, passwordField,
         roleBox, statusBox,
         new HBox(10, save, cancel)
     );
@@ -757,7 +949,7 @@ public class AdminUserPage extends BorderPane {
             user.setStatus("Aktif");
             
             if(selectedPhoto[0] != null){
-                user.setPhoto(selectedPhoto[0].getAbsolutePath());
+                user.setPhoto(fileToBytes(selectedPhoto[0]));
             }
             
            UserAdminDAO dao = new UserAdminDAO();
@@ -855,26 +1047,27 @@ if (success) {
         VBox logoBox = new VBox(logo);
         logoBox.setAlignment(Pos.TOP_LEFT);
 
-        Image userPhoto;
-        if (superadmin.getPhoto() != null && !superadmin.getPhoto().isEmpty()
-                && new File(superadmin.getPhoto()).exists()) {
+    Image userPhoto;
 
-            userPhoto = new Image(
-                new File(superadmin.getPhoto()).toURI().toString(),
-                false
-            );
-        }else {
-            // fallback kalau user belum upload foto
-            userPhoto = new Image(
-                getClass().getResourceAsStream("/assets/user.png")
-            );
-        }
+    if (superadmin.getPhoto() != null && superadmin.getPhoto().length > 0) {
+        userPhoto = new Image(
+        new java.io.ByteArrayInputStream(superadmin.getPhoto())
+    );
+    }   else {
+    userPhoto = new Image(
+        getClass().getResourceAsStream("/assets/user.png")
+    );
+    }
+
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
         userImage.setFitHeight(40);
         userImage.setPreserveRatio(true);
         Circle clipCircle = new Circle(20, 20, 20);
         userImage.setClip(clipCircle);
+        userImage.setCursor(javafx.scene.Cursor.HAND);
+        userImage.setOnMouseClicked(e -> openProfilePhotoDialog(userImage));
+
 
         Label nameLabel = new Label(superadmin.getNama());
         nameLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1e293b;");

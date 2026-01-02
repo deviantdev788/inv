@@ -11,6 +11,9 @@ package com.mycompany.inventaris.view;
 
 import com.mycompany.inventaris.model.User;
 import com.mycompany.inventaris.dao.AuditTrailDAO;
+import com.mycompany.inventaris.dao.UserAdminDAO;
+import com.mycompany.inventaris.dao.DashboardDAO;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -66,19 +69,17 @@ public class AdminPage extends BorderPane {
 
 
         // USER PROFILE
-        Image userPhoto;
-        if (admin.getPhoto() != null && !admin.getPhoto().isEmpty()
-                && new File(admin.getPhoto()).exists()) {
+    Image userPhoto;
 
-            userPhoto = new Image(
-                new File(admin.getPhoto()).toURI().toString(),
-                false
-            );
-        }else {
-            // fallback kalau user belum upload foto
-            userPhoto = new Image(
-                getClass().getResourceAsStream("/assets/user.png")
-            );
+    byte[] photoBytes = admin.getPhoto();
+
+    if (photoBytes != null && photoBytes.length > 0) {
+    userPhoto = new Image(new ByteArrayInputStream(photoBytes));
+    } else {
+    // absolute safety fallback (should rarely happen if NOT NULL)
+    userPhoto = new Image(
+        getClass().getResourceAsStream("/assets/user.png")
+    );
         }
         ImageView userImage = new ImageView(userPhoto);
         userImage.setFitWidth(40);
@@ -227,10 +228,15 @@ public class AdminPage extends BorderPane {
         HBox cardBox = new HBox(20);
         cardBox.setAlignment(Pos.CENTER);
 
-        VBox cardPeminjaman = createStatCard("Data Peminjaman", "3", "#fee2e2");
-        VBox cardPermintaan = createStatCard("Data Permintaan", "3", "#e0f2fe");
-        VBox cardPengembalian = createStatCard("Data Pengembalian", "3", "#fee2e2");
-        VBox cardReplacement = createStatCard("Data Replacement", "3", "#e0f2fe");
+        int permintaanCount = DashboardDAO.getPermintaanCount();
+        int peminjamanCount = DashboardDAO.getPeminjamanCount();
+        int pengembalianCount = DashboardDAO.getPengembalianCount();
+        int replacementCount = DashboardDAO.getReplacementCount();
+        
+        VBox cardPeminjaman = createStatCard( "Data Peminjaman",String.valueOf(peminjamanCount), "#fee2e2");
+        VBox cardPermintaan = createStatCard("Data Permintaan", String.valueOf(permintaanCount), "#e0f2fe");
+        VBox cardPengembalian = createStatCard("Data Pengembalian", String.valueOf(pengembalianCount), "#fee2e2");
+        VBox cardReplacement = createStatCard("Data Replacement", String.valueOf(replacementCount), "#e0f2fe");
 
         cardBox.getChildren().addAll(
             cardPeminjaman,

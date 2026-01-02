@@ -42,7 +42,7 @@ public class LoginDAO {
                         rs.getString("identity_number"),
                         rs.getString("role"),
                         rs.getString("status"),
-                        rs.getString("photo")
+                        rs.getBytes("photo")
                 );
             }
         } catch (Exception e) {
@@ -75,7 +75,7 @@ public class LoginDAO {
                         rs.getString("identity_number"),
                         rs.getString("role"),
                         rs.getString("status"),
-                        rs.getString("photo")
+                        rs.getBytes("photo")
                 );
             }
         } catch (Exception e) {
